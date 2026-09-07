@@ -1,0 +1,291 @@
+<?php
+session_start();
+require 'config.php'; // må endre til det som faktisk kobler til databasen 
+
+$error = "";
+$email = "";
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if (empty($email) || empty($password)) {
+
+        $error = "Please fill in all fields";
+
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+        $error = "Invalid email format";
+
+    } else {
+
+        $user = null;
+        $role = null;
+
+        
+        // Sjekk Administrator
+        
+        $stmt = $conn->prepare("
+            SELECT AdminId, Epost, Passord
+            FROM Administrator
+            WHERE Epost = ?
+        ");
+
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+
+        $result = $stmt->get_result();
+
+        if ($result->num_rows === 1) {
+
+            $user = $result->fetch_assoc();
+
+            if (password_verify($password, $user['Passord'])) {
+                $role = "admin";
+            }
+        }
+
+        $stmt->close();
+
+
+        //Sjekk om det er bedriftsleder som logger inn (manager)
+        
+        if ($user === null || $role === null) {
+
+            $stmt = $conn->prepare("
+                SELECT BedriftsId, Navn, Epost, Passord
+                FROM Bedriftsleder
+                WHERE Epost = ?
+            ");
+
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+
+            $result = $stmt->get_result();
+
+            if ($result->num_rows === 1) {
+
+                $user = $result->fetch_assoc();
+
+                if (password_verify($password, $user['Passord'])) {
+                    $role = "manager";
+                }
+            }
+
+            $stmt->close();
+        }
+
+
+        // Sjekk om det er vanlig ansatt som logger inn 
+        if ($user === null || $role === null) {
+
+            $stmt = $conn->prepare("
+                SELECT AnsattId, AnsattEpost, AnsattPassord
+                FROM Ansatt
+                WHERE AnsattEpost = ?
+            ");
+
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+
+            $result = $stmt->get_result();
+
+            if ($result->num_rows === 1) {
+
+                $user = $result->fetch_assoc();
+
+                if (password_verify($password, $user['AnsattPassord'])) {
+                    $role = "employee";
+                }
+            }
+
+            $stmt->close();
+        }
+
+
+        // Log in 
+        if ($role !== null) {
+
+            session_regenerate_id(true);
+
+            $_SESSION['logged_in'] = true;
+            $_SESSION['role'] = $role;
+            $_SESSION['email'] = $email;
+
+
+            // Lagrer riktig ID 
+            if ($role === "admin") {
+
+                $_SESSION['userId'] = $user['AdminId'];
+                $_SESSION['userName'] = $user['Epost'];
+
+                header("Location: admin/admin_dashboard.php"); // Sett inn riktig navn 
+                exit();
+
+            } elseif ($role === "manager") {
+
+                $_SESSION['userId'] = $user['BedriftsId'];
+                $_SESSION['userName'] = $user['Navn'];
+
+                header("Location: manager/manager_dashboard.php"); // Sett inn riktig navn
+                exit();
+
+            } elseif ($role === "employee") {
+
+                $_SESSION['userId'] = $user['AnsattId'];
+                $_SESSION['userName'] = $user['AnsattEpost'];
+
+                header("Location: employee/employee_dashboard.php"); //Sett inn riktig navn 
+                exit();
+            }
+
+        } else {
+
+            $error = "Invalid email or password";
+        }
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Log in - WorkSync</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <style>
+      :root {
+          --beauty-color: #3456d2;
+          --beauty-color-hover: #2d37c2;
+          --text-dark: #212529;
+      }
+      body {
+          background-image: url(''); /* Skal det være noe bakgrunnsbile? */ 
+          background-size: cover; background-position: center; background-attachment: fixed;
+          font-family: 'Times New Roman', serif;
+      }
+      .glass-card {
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(10px);
+          border-radius: 20px;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+      }
+      h3 { font-weight: bold; letter-spacing: 1px; color: var(--text-dark); }
+      .form-control { border-radius: 50px; padding: 12px 20px; border: 1px solid #ddd; background: rgba(255,255,255,0.9); }
+      .form-control:focus { box-shadow: 0 0 0 4px rgba(227,184,210,0.3); border-color: var(--beauty-color); }
+      .btn-beauty {
+          background-color: var(--beauty-color); color: white; border: none; border-radius: 50px; padding: 12px;
+          font-weight: bold; text-transform: uppercase; letter-spacing:1px; transition: all .3s ease;
+      }
+      .btn-beauty:hover { background-color: var(--beauty-color-hover); transform: translateY(-2px); color: white; box-shadow: 0 4px 10px rgba(227,184,210,0.6); }
+      .bottom-links a { color: #666; text-decoration: none; font-size: 0.9rem; transition: color 0.3s; }
+      .bottom-links a:hover { color: var(--beauty-color-hover); text-decoration: underline; }
+
+      /*Dynamsik bakgrunn, Ikke testet!! */ 
+      .wave-background {
+        position: absolute; 
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%
+        z-index: -1; 
+        overflow: hidden; 
+        background: linear-gradient(1135deg, #1b47c1, #0f2c82)
+      }
+      .wave-line {
+        position:absolute; 
+        width: 200%
+        height: 120px 
+        opacity: 0.6%;
+        filter: blur(10px);
+        animation: waveAnimation 12s ease-in-out infinite alternate; 
+      }
+      .line-blue {
+        background: linear-gradient(90deg, transparent, #4da6ff, transparent);
+        top: 15%;
+        animation-duration: 14s; 
+      }
+      .line-green {
+        background: linear-gradient(90deg, transparent, #2ecc71, transparent);
+        top: 45%;
+        animation-duration: 10s; 
+        animation-delay: -2s; 
+      }
+      .line-yellow{
+        background: linear-gradient(90deg, transparent, #f1c40f, transparent);
+        top: 75%;
+        animation-duration: 16s;
+        animation-delay: -5s; 
+      }
+      @Keyframes waveAnimation{ 
+        0%{
+            transform: translateX(-25%) translateY(0) rotate(-3deg);
+        }
+        50% {
+            transform: translateX(0%) translateY(-35px) rotate(3deg);
+        }
+        100%{
+            transform: translateX(-25%) translateY(25px) rotate(-2deg);
+        }
+      }
+
+      body {
+        margin: 0; 
+        height: 100vh;
+        overflow: hidden; 
+        position: relative;
+        background-color: #1a4bc8; 
+      }
+  </style>
+</head>
+<body class="d-flex align-items-center justify-content-center vh-100">
+
+<div class="wave-background">
+    <div class="wave-line line-blue"></div>
+    <div class="wave-line line-green"></div>
+    <div class="wave-line line-yellow"></div>
+</div>
+
+<div class="card glass-card p-5" style="max-width: 420px; width: 100%;">
+  <div class="text-center mb-4">
+      <h2 class="fw-bold">WorkSync</h2>
+      <p class="text-muted small">Welcome back, please login to your account.</p>
+  </div>
+
+  <?php if (!empty($success_message)) : ?>
+    <div class='alert alert-success text-center rounded-pill py-2 small mb-3'><?= htmlspecialchars($success_message) ?></div>
+  <?php endif; ?>
+
+  <?php if (!empty($error)) : ?>
+    <div class='alert alert-danger text-center rounded-pill py-2 small mb-3'><?= htmlspecialchars($error) ?></div>
+  <?php endif; ?>
+
+  <form method="POST" novalidate>
+    <div class="mb-3">
+      <label class="form-label fw-semibold ms-2 small text-muted">Email Address</label>
+      <input type="email" class="form-control" name="email" placeholder="name@example.com" value="<?= htmlspecialchars($email) ?>" required>
+    </div>
+    <div class="mb-4">
+      <label class="form-label fw-semibold ms-2 small text-muted">Password</label>
+      <input type="password" class="form-control" name="password" placeholder="••••••••" required>
+    </div>
+
+    <button type="submit" class="btn btn-beauty w-100 mb-3">Log In</button>
+  </form>
+
+  <div class="d-flex justify-content-between align-items-center bottom-links mt-2 border-top pt-3">
+      <a href="index.php"><i class="bi bi-arrow-left"></i> Back to Home</a>
+      <span>New here? <a href="registrer.php" class="register-link">Register</a></span>
+  </div>
+
+  <div class="text-center mt-3">
+      <a href="forgot_password.php" class="small text-muted">Forgot Password?</a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
