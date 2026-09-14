@@ -75,6 +75,12 @@ nav a:active {
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
+.mockup-box{
+    height: 50px;
+    background-color: #e9ecef;
+    border: solid 1px #ced4da;
+    border-radius: 5px;
+}
 
 .btn{
     background-color:aliceblue;

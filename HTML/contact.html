@@ -8,7 +8,27 @@
         <link rel="stylesheet" href="/CSS/contact.css"/>
 
     </head>
-    <body class="py-5">
+   
+    <body>
+         <header class="top-header">
+        <div class="logo-container">
+            <a href="/">
+                <img src="/Images/WorkSyncLogo.png" alt="Company Name Logo" class="logo-img" width="150" height="40">
+            </a>
+        </div>
+
+        <nav class="main-nav">
+            <ul class="nav-links">
+                <li><a href="pricing.php">Pricing</a></li>
+                <li><a href="about.php">About</a></li>
+                <li><a href="contact.php">Contact</a></li>
+                <li><a href="log_in.php">Login</a></li>
+                <li><a href="register.php">Sign up</a></li>
+            </ul>
+        </nav>
+    </header>
+        <div class="py-5">
+        
         <div class="container my-5">
             <div class="card border-0 shadow-sm overflow-hidden">
                 <div class="row g-0">
@@ -30,9 +50,34 @@
                                     <label class="form-label-custom">Phone</label>
                                     <input type="text" name="phone" class="form-control form-control-custom" placeholder="Phone number" required>
                                 </div>
-                                
+                                <div class="col-md-6">
+                                    <label class="form-label-custom">Company</label>
+                                    <input type="text" name="company" class="form-control form-control-custom" placeholder="Company" required>
+                                </div>
                             </div>
+                            <div class="mb-4">
+                                <label class="form-label-custom">Message</label>
+                                <textarea name="message" class="form-control form-control-custom" placeholder="Your Message" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-custom text-uppercase">Send Message</button>
                         </form>
+                    </div>
+                    <div class="col-lg-4 p-md-5 bg-custom-dark text-white d-flex flex-column justify-content-between">
+                        <div>
+                            <h4 class="mb-4">Contact Information</h4>
+                            <p class="text-white-50 mb-4 " style="font-size: 0.95rem;">If you have any questions or inquiries, feel free to reach out to us using the contact information below. We are here to assist you and provide the support you need.</p>
+                            <ul class="list-unstyled">
+                                <li class="d-flex align-items-start mb-3"><i class="bi bi-geo-alt-fill me-3 mt-1"></i>
+                                    <span>Kjølnes Ring 56, 3918 Porsgrunn</span>
+                                </li>
+                                <li class="d-flex align-items-start mb-3"><i class="bi bi-telephone-fill me-3 mt-1"></i>
+                                    <span>+47 123 45 678</span>
+                                </li>
+                                <li class="d-flex align-items-start mb-3"><i class="bi bi-envelope-fill me-3 mt-1"></i>
+                                    <span>WorkSync@gmail.com</span>
+                                    </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>

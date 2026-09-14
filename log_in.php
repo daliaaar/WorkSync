@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'config.php'; // må endre til det som faktisk kobler til databasen 
+//require 'config.php'; // må endre til det som faktisk kobler til databasen 
 
 $error = "";
 $email = "";
@@ -162,16 +162,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
           --text-dark: #212529;
       }
       body {
-          background-image: url(''); /* Skal det være noe bakgrunnsbile? */ 
-          background-size: cover; background-position: center; background-attachment: fixed;
           font-family: 'Times New Roman', serif;
+          margin: 0;
+          height: 100vh;
+          overflow: hidden;
+          position: relative;
+          background-color: #1a4bc8;
       }
       .glass-card {
-          background: rgba(255, 255, 255, 0.85);
+          background: rgba(255, 255, 255, 0.55);
           backdrop-filter: blur(10px);
           border-radius: 20px;
           border: 1px solid rgba(255, 255, 255, 0.3);
           box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+          position: relative;
+          z-index: 1;
       }
       h3 { font-weight: bold; letter-spacing: 1px; color: var(--text-dark); }
       .form-control { border-radius: 50px; padding: 12px 20px; border: 1px solid #ddd; background: rgba(255,255,255,0.9); }
@@ -184,60 +189,52 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       .bottom-links a { color: #666; text-decoration: none; font-size: 0.9rem; transition: color 0.3s; }
       .bottom-links a:hover { color: var(--beauty-color-hover); text-decoration: underline; }
 
-      /*Dynamsik bakgrunn, Ikke testet!! */ 
+      /* Dynamisk bakgrunn */
       .wave-background {
-        position: absolute; 
+        position: absolute;
         top: 0;
         left: 0;
         width: 100%;
-        height: 100%
-        z-index: -1; 
-        overflow: hidden; 
-        background: linear-gradient(1135deg, #1b47c1, #0f2c82)
+        height: 100%;
+        z-index: 0;
+        overflow: hidden;
+        background: linear-gradient(135deg, #1b47c1, #0f2c82);
       }
       .wave-line {
-        position:absolute; 
-        width: 200%
-        height: 120px 
-        opacity: 0.6%;
+        position: absolute;
+        width: 200%;
+        height: 120px;
+        opacity: 0.6;
         filter: blur(10px);
-        animation: waveAnimation 12s ease-in-out infinite alternate; 
+        animation: waveAnimation 12s ease-in-out infinite alternate;
       }
       .line-blue {
         background: linear-gradient(90deg, transparent, #4da6ff, transparent);
         top: 15%;
-        animation-duration: 14s; 
+        animation-duration: 14s;
       }
       .line-green {
         background: linear-gradient(90deg, transparent, #2ecc71, transparent);
         top: 45%;
-        animation-duration: 10s; 
-        animation-delay: -2s; 
+        animation-duration: 10s;
+        animation-delay: -2s;
       }
       .line-yellow{
         background: linear-gradient(90deg, transparent, #f1c40f, transparent);
         top: 75%;
         animation-duration: 16s;
-        animation-delay: -5s; 
+        animation-delay: -5s;
       }
-      @Keyframes waveAnimation{ 
-        0%{
+      @keyframes waveAnimation {
+        0% {
             transform: translateX(-25%) translateY(0) rotate(-3deg);
         }
         50% {
             transform: translateX(0%) translateY(-35px) rotate(3deg);
         }
-        100%{
+        100% {
             transform: translateX(-25%) translateY(25px) rotate(-2deg);
         }
-      }
-
-      body {
-        margin: 0; 
-        height: 100vh;
-        overflow: hidden; 
-        position: relative;
-        background-color: #1a4bc8; 
       }
   </style>
 </head>
@@ -278,7 +275,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
   <div class="d-flex justify-content-between align-items-center bottom-links mt-2 border-top pt-3">
       <a href="index.php"><i class="bi bi-arrow-left"></i> Back to Home</a>
-      <span>New here? <a href="registrer.php" class="register-link">Register</a></span>
+      <span>New here? <a href="register.php" class="register-link">Register</a></span>
   </div>
 
   <div class="text-center mt-3">
