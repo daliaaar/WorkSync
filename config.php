@@ -1,1 +1,0 @@
-For å koble til databasen 
