@@ -1,6 +1,6 @@
 <?php
 session_start();
-//require 'config.php'; // Sett inn tilkobling ($conn = mysqli connection)
+require 'config.php'; // Sett inn tilkobling ($conn = mysqli connection)
 
 $error = "";
 $email = "";

@@ -1,6 +1,6 @@
 <?php
 session_start();
-//require 'config.php'; // må endre til det som faktisk kobler til databasen 
+require 'config.php'; // må endre til det som faktisk kobler til databasen 
 
 $error = "";
 $email = "";
@@ -202,38 +202,44 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       }
       .wave-line {
         position: absolute;
-        width: 200%;
-        height: 120px;
+        width: 220%;
+        height: 60px;
         opacity: 0.6;
         filter: blur(10px);
-        animation: waveAnimation 12s ease-in-out infinite alternate;
+        animation: waveAnimation 8s ease-in-out infinite alternate;
       }
       .line-blue {
         background: linear-gradient(90deg, transparent, #4da6ff, transparent);
         top: 15%;
-        animation-duration: 14s;
+        animation-duration: 9s;
       }
       .line-green {
         background: linear-gradient(90deg, transparent, #2ecc71, transparent);
         top: 45%;
-        animation-duration: 10s;
+        animation-duration: 6.5s;
         animation-delay: -2s;
       }
       .line-yellow{
         background: linear-gradient(90deg, transparent, #f1c40f, transparent);
         top: 75%;
-        animation-duration: 16s;
+        animation-duration: 10s;
         animation-delay: -5s;
       }
       @keyframes waveAnimation {
         0% {
-            transform: translateX(-25%) translateY(0) rotate(-3deg);
+            transform: translateX(-35%) translateY(0) rotate(-5deg);
+        }
+        25% {
+            transform: translateX(-15%) translateY(-50px) rotate(3deg);
         }
         50% {
-            transform: translateX(0%) translateY(-35px) rotate(3deg);
+            transform: translateX(10%) translateY(30px) rotate(5deg);
+        }
+        75% {
+            transform: translateX(-20%) translateY(-35px) rotate(-3deg);
         }
         100% {
-            transform: translateX(-25%) translateY(25px) rotate(-2deg);
+            transform: translateX(-35%) translateY(40px) rotate(-4deg);
         }
       }
   </style>

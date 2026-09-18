@@ -7,10 +7,181 @@ $message = $_POST['message'];
 
 $mailheader = "From: ".$name."<".$email.">\r\n";
 
-$recipient = "prefered_email";
+$recipient = "worksync@gmail.com";
 
 mail($recipient, $subject, $message, $mailheader)or die("Error!");
-
-
-
 ?>
+
+<style>
+    *{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family:Arial, Helvetica, sans-serif;
+   
+}
+body{
+     background: linear-gradient(to bottom, #b7dfe0 50%, #ffffff 50%);
+     min-height: 100vh;
+}
+
+.top-header{
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 5%;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e5e5;
+    z-index: 10;
+    
+}
+
+.main-nav .nav-links {
+    list-style: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 30px;
+    margin: 0;
+    padding: 0;
+}
+
+
+.nav-links li a{
+
+    text-decoration: none;
+    font-size: 18px;
+    color:black;
+    transition: 0.3s;
+}
+
+nav a:hover {
+    color: #3b71ca;
+}
+
+nav a:active {
+    color: black;
+}
+
+.form-control-custom{
+    border: none;
+    border-bottom: 1px solid #ced4da;
+    border-radius: 0;
+    padding-left: 0;
+    padding-right: 0;
+    background-color: transparent;
+}
+
+.form-control-custom:focus {
+    outline: none;
+    box-shadow: none;
+    border-color: #3b71ca;
+}
+
+.form-label-custom{
+    font-size: 0.9 rem;
+    color: #888;
+    margin-bottom: 0.2rem;
+    display: block;
+}
+
+.bg-custom-dark{
+    background-color: #3b71ca;
+    color: #fff;
+}
+
+.btn-custom{
+    background-color: #3b71ca;
+    color: #fff;
+    border-radius: 0;
+
+}
+</style>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet">
+        <link rel="stylesheet" href="/CSS/contact.css"/>
+
+    </head>
+   
+    <body>
+         <header class="top-header">
+        <div class="logo-container">
+            <a href="/">
+                <img src="/Images/WorkSyncLogo.png" alt="Company Name Logo" class="logo-img" width="150" height="40">
+            </a>
+        </div>
+
+        <nav class="main-nav">
+            <ul class="nav-links">
+                <li><a href="pricing.php">Pricing</a></li>
+                <li><a href="about.php">About</a></li>
+                <li><a href="contact.php">Contact</a></li>
+                <li><a href="log_in.php">Login</a></li>
+                <li><a href="register.php">Sign up</a></li>
+            </ul>
+        </nav>
+    </header>
+        <div class="py-5">
+        
+        <div class="container my-5">
+            <div class="card border-0 shadow-sm overflow-hidden">
+                <div class="row g-0">
+                    <div class="col-lg-8 p-4 p-md-5 bg-white">
+                        <h4 class="mb-4 text-custom">Send us a message</h4>
+                        <form action="contact.php" method="POST">
+                            <div class="row g-4 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label-custom">Name</label>
+                                    <input type="text" name="name" class="form-control form-control-custom" placeholder="Your name" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label-custom">Email</label>
+                                    <input type="email" name="email" class="form-control form-control-custom" placeholder="Your email" required>
+                                </div>
+                            </div>
+                            <div class="row g-4 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label-custom">Phone</label>
+                                    <input type="text" name="phone" class="form-control form-control-custom" placeholder="Phone number" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label-custom">Company</label>
+                                    <input type="text" name="company" class="form-control form-control-custom" placeholder="Company name" required>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label-custom">Message</label>
+                                <textarea name="message" class="form-control form-control-custom" placeholder="Your message" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-custom text-uppercase">Send Message</button>
+                        </form>
+                    </div>
+                    <div class="col-lg-4 p-md-5 bg-custom-dark text-white d-flex flex-column justify-content-between">
+                        <div>
+                            <h4 class="mb-4">Contact Information</h4>
+                            <p class="text-white-50 mb-4 " style="font-size: 0.95rem;">Feel free to reach out to us using the contact information below or send us a message. We are here to assist you.</p>
+                            <ul class="list-unstyled">
+                                <li class="d-flex align-items-start mb-3"><i class="bi bi-geo-alt-fill me-3 mt-1"></i>
+                                    <span>Kjølnes Ring 56, 3918 Porsgrunn</span>
+                                </li>
+                                <li class="d-flex align-items-start mb-3"><i class="bi bi-telephone-fill me-3 mt-1"></i>
+                                    <span>+47 123 45 678</span>
+                                </li>
+                                <li class="d-flex align-items-start mb-3"><i class="bi bi-envelope-fill me-3 mt-1"></i>
+                                    <span>WorkSync@gmail.com</span>
+                                    </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html> 
