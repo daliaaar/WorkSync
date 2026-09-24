@@ -99,7 +99,87 @@ nav a:active {
         <link rel="stylesheet" href="/CSS/index.css"/>
 
     </head>
+    <style>
+        *{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family:Arial, Helvetica, sans-serif;
+   
+}
 
+body{
+     background-color:white;
+     min-height: 100vh;
+}
+
+.top-header{
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 5%;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e5e5;
+    z-index: 10;
+    
+}
+
+.main-nav .nav-links {
+    list-style: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 30px;
+    margin: 0;
+    padding: 0;
+}
+
+
+
+.nav-links li a{
+
+    text-decoration: none;
+    font-size: 18px;
+    color:black;
+    transition: 0.3s;
+   
+
+}
+nav a:hover {
+    color: #3b71ca;
+}
+
+nav a:active {
+    color: black;
+}
+
+.hero-section {
+    background-color: #3b71ca;
+    padding: 60px 5%;
+    color: #ffffff;
+
+}
+
+.hero-section h1{
+    font-size: 48px;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.hero-section p{
+    font-size: 22px;
+    margin-bottom: 25px;
+}
+
+
+
+.btn{
+    background-color:aliceblue;
+    font-weight: bold;
+}
+
+    </style>
     <body>
         <header class="top-header">
         <div class="logo-container">
@@ -126,12 +206,12 @@ nav a:active {
                     <p>Simplify your workflow</p>
                     <div class="d-flex gap-3">
                     <a href="signup.php" class="btn"> Sign up your company</a>
-                    <a href="log_in.php" class="btn"> Log in</a>
+                    <a href="login.php" class="btn"> Log in</a>
                     </div>
                 </div>
 
         <div class="col-lg-6">
-            <div class="mockup-container bh-white text-dark p-3 rounded-3 shadow">
+            <div class="mockup-container">
                 <div class="row g-0">
                     <div class="col-4 border-end pe-2">
                         <strong class="d-block mb-2">WorkSync</strong>
