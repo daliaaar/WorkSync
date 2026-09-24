@@ -1,5 +1,92 @@
 <!<!DOCTYPE html> 
-<html lang="en">    
+<html lang="en">  
+    <style>
+      *{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family:Arial, Helvetica, sans-serif;
+   
+}
+
+body{
+     background-color:white;
+     min-height: 100vh;
+}
+.top-header{
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 5%;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e5e5;
+    z-index: 10;
+    
+}
+
+.main-nav .nav-links {
+    list-style: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 30px;
+    margin: 0;
+    padding: 0;
+}
+
+
+
+.nav-links li a{
+
+    text-decoration: none;
+    font-size: 18px;
+    color:black;
+    transition: 0.3s;
+   
+
+}
+nav a:hover {
+    color: #3b71ca;
+}
+
+nav a:active {
+    color: black;
+}
+
+.pricing-card{
+    transition: all 0.3s ease;
+    border-radius: 15px;
+    border: none;
+    background: linear-gradient(145deg, #ffffff, #f5f5f5);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.pricing-card:hover{
+    transform: translateY(-10px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+}
+.feature-list li{
+    margin-bottom: 0.8rem;
+}
+
+.popular-badge{
+    position: absolute;
+    top: -12px;
+    right: 20px; 
+    border-radius: 20px;
+}
+.gradient-custom{
+    background: linear-gradient(45deg, #42f5bf, #2b4fc4);
+    border: none;
+    padding: 12px 30px;
+    transition: all 0.3s ease;
+}
+.gradient-custom:hover{
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);
+}
+</style>
      <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">

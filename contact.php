@@ -2,17 +2,112 @@
 
 $name = $_POST['name'];
 $email = $_POST['email'];
-$subject = $_POST['subject'];
+$phone = $_POST['phone'];
+$company = $_POST['company'];
 $message = $_POST['message'];
 
-$mailheader = "From: ".$name."<".$email.">\r\n";
+$mailheader = "From: ".$name." <".$email.">\r\n";
 
 $recipient = "worksync@gmail.com";
 
-mail($recipient, $subject, $message, $mailheader)or die("Error!");
+if(mail($recipient, $company, $message, $mailheader))
+    {
+        echo "<script>alert('Message sent successfully!');</script>";
+
+    }
+    else
+    {
+            echo "<script>alert('Message not sent!');</script>";
+    }
 ?>
 <!DOCTYPE html>
 <html lang="en">
+    <style>
+        *{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family:Arial, Helvetica, sans-serif;
+   
+}
+body{
+     background: linear-gradient(to bottom, #b7dfe0 50%, #ffffff 50%);
+     min-height: 100vh;
+}
+
+.top-header{
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 5%;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e5e5;
+    z-index: 10;
+    
+}
+
+.main-nav .nav-links {
+    list-style: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 30px;
+    margin: 0;
+    padding: 0;
+}
+
+
+.nav-links li a{
+
+    text-decoration: none;
+    font-size: 18px;
+    color:black;
+    transition: 0.3s;
+}
+
+nav a:hover {
+    color: #3b71ca;
+}
+
+nav a:active {
+    color: black;
+}
+
+.form-control-custom{
+    border: none;
+    border-bottom: 1px solid #ced4da;
+    border-radius: 0;
+    padding-left: 0;
+    padding-right: 0;
+    background-color: transparent;
+}
+
+.form-control-custom:focus {
+    outline: none;
+    box-shadow: none;
+    border-color: #3b71ca;
+}
+
+.form-label-custom{
+    font-size: 0.9 rem;
+    color: #888;
+    margin-bottom: 0.2rem;
+    display: block;
+}
+
+.bg-custom-dark{
+    background-color: #3b71ca;
+    color: #fff;
+}
+
+.btn-custom{
+    background-color: #3b71ca;
+    color: #fff;
+    border-radius: 0;
+
+}
+</style>
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -72,7 +167,7 @@ mail($recipient, $subject, $message, $mailheader)or die("Error!");
                                 <label class="form-label-custom">Message</label>
                                 <textarea name="message" class="form-control form-control-custom" placeholder="Your message" rows="3" required></textarea>
                             </div>
-                            <button type="submit" class="btn btn-custom text-uppercase">Send Message</button>
+                            <button type="submit" class="btn btn-custom text-uppercase" style="background-color:#3b71ca; color: white;">Send Message</button>
                         </form>
                     </div>
                     <div class="col-lg-4 p-md-5 bg-custom-dark text-white d-flex flex-column justify-content-between">
@@ -90,7 +185,7 @@ mail($recipient, $subject, $message, $mailheader)or die("Error!");
                                     <span>WorkSync@gmail.com</span>
                                     </li>
                             </ul>
-                        </div>
+                        </div>                      
                     </div>
                 </div>
             </div>

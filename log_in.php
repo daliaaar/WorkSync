@@ -28,7 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         
         $stmt = $conn->prepare("
             SELECT AdminId, Epost, Passord
-            FROM Administrator
+            FROM ADMINISTRATOR
             WHERE Epost = ?
         ");
 
@@ -55,7 +55,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             $stmt = $conn->prepare("
                 SELECT BedriftsId, Navn, Epost, Passord
-                FROM Bedriftsleder
+                FROM COMPANYMANAGER
                 WHERE Epost = ?
             ");
 
@@ -82,7 +82,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             $stmt = $conn->prepare("
                 SELECT AnsattId, AnsattEpost, AnsattPassord
-                FROM Ansatt
+                FROM ANSATT
                 WHERE AnsattEpost = ?
             ");
 

@@ -29,19 +29,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         // Sjekker om e-posten allerede finnes
         $stmt = $conn->prepare(
             "SELECT AdminId AS userId, 'admin' AS role
-             FROM Administrator
+             FROM ADMINISTRATOR
              WHERE Epost = ?
 
              UNION
 
              SELECT BedriftsId AS userId, 'manager' AS role
-             FROM Bedriftsleder
+             FROM COMPANYMANAGER
              WHERE Epost = ?
 
              UNION
 
              SELECT AnsattId AS userId, 'employee' AS role
-             FROM Ansatt
+             FROM EMPLOYEE
              WHERE AnsattEpost = ?"
         );
         $stmt->bind_param("sss", $email, $email, $email);
@@ -54,7 +54,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             // Registrer ny bedriftsleder
             $hash = password_hash($password, PASSWORD_DEFAULT);
             $insertStmt = $conn->prepare(
-                "INSERT INTO Bedriftsleder (Epost, Passord, Telefonnr, BedriftsNavn, Navn)
+                "INSERT INTO COMPANYMANAGER (Epost, Passord, Telefonnr, BedriftsNavn, Navn)
                  VALUES (?, ?, ?, ?, ?)"
             );
             $insertStmt->bind_param("sssss", $email, $hash, $phone, $companyName, $managerName);
