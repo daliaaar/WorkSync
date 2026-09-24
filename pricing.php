@@ -99,7 +99,7 @@ nav a:active {
         <header class="top-header">
         <div class="logo-container">
             <a href="/">
-                <img src="/Images/WorkSyncLogo.png" alt="Company Name Logo" class="logo-img" width="150" height="40">
+                <img src="/WorkSync.png" alt="Company Name Logo" class="logo-img" width="150" height="40">
             </a>
         </div>
 
