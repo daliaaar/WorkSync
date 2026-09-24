@@ -86,7 +86,8 @@ nav a:active {
 }
 
 .btn{
-    background-color:aliceblue;
+    background-color: #f8f9fa;
+    color: black;
     font-weight: bold;
 }
 </style>

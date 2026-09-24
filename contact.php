@@ -2,14 +2,23 @@
 
 $name = $_POST['name'];
 $email = $_POST['email'];
-$subject = $_POST['subject'];
+$phone = $_POST['phone'];
+$company = $_POST['company'];
 $message = $_POST['message'];
 
-$mailheader = "From: ".$name."<".$email.">\r\n";
+$mailheader = "From: ".$name." <".$email.">\r\n";
 
 $recipient = "worksync@gmail.com";
 
-mail($recipient, $subject, $message, $mailheader)or die("Error!");
+if(mail($recipient, $company, $message, $mailheader))
+    {
+        echo "<script>alert('Message sent successfully!');</script>";
+
+    }
+    else
+    {
+            echo "<script>alert('Message not sent!');</script>";
+    }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -158,7 +167,7 @@ nav a:active {
                                 <label class="form-label-custom">Message</label>
                                 <textarea name="message" class="form-control form-control-custom" placeholder="Your message" rows="3" required></textarea>
                             </div>
-                            <button type="submit" class="btn btn-custom text-uppercase">Send Message</button>
+                            <button type="submit" class="btn btn-custom text-uppercase" style="background-color:#3b71ca; color: white;">Send Message</button>
                         </form>
                     </div>
                     <div class="col-lg-4 p-md-5 bg-custom-dark text-white d-flex flex-column justify-content-between">
@@ -176,7 +185,7 @@ nav a:active {
                                     <span>WorkSync@gmail.com</span>
                                     </li>
                             </ul>
-                        </div>
+                        </div>                      
                     </div>
                 </div>
             </div>
