@@ -55,7 +55,7 @@ nav a:active {
     transition: all 0.3s ease;
     border-radius: 15px;
     border: none;
-    background: linear-gradient(145deg, #ffffff, #f5f5f5);
+    background: linear-gradient(to right, #42f5bf 50%, #2b4fc4 50%);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 }
 
