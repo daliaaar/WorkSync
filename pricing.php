@@ -131,7 +131,7 @@ nav a:active {
                             <ul class="list-unstyled feature-list">
                                 <li class="bi bi-check2 text-primary me-2">10 users</li>
                             </ul>
-                            <button class="btn btn-outline-primary btn-lg w-100 mt-4">Get Started</button>
+                            <a href="payment.php" class="btn btn-outline-primary btn-lg w-100 mt-4">Get Started</a>
                         </div>
                     </div>
                 </div>
@@ -145,7 +145,7 @@ nav a:active {
                             <ul class="list-unstyled feature-list">
                                 <li class="bi bi-check2 text-primary me-2">50 users</li>
                             </ul>
-                            <button class="btn gradient-custom text-white btn-lg w-100 mt-4">Get Started</button>
+                            <a href="payment.php" class="btn gradient-custom text-white btn-lg w-100 mt-4">Get Started</a>
                         </div>
                     </div>
                 </div>
@@ -158,7 +158,7 @@ nav a:active {
                             <ul class="list-unstyled feature-list">
                                 <li class="bi bi-check2 text-primary me-2">Over 200 users</li>
                             </ul>
-                            <button class="btn btn-outline-primary btn-lg w-100 mt-4">Get Started</button>
+                            <a href="payment.php" class="btn btn-outline-primary btn-lg w-100 mt-4">Get Started</a>
                         </div>
                     </div>
                 </div>    
