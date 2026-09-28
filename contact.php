@@ -36,7 +36,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST")
    
 }
 body{
-     background: linear-gradient(to bottom, #b7dfe0 50%, #ffffff 50%);
+     background: linear-gradient(to bottom, 45deg, #42f5bf 50%, #2b4fc4 50%);
      min-height: 100vh;
 }
 

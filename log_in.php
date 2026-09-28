@@ -82,7 +82,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             $stmt = $conn->prepare("
                 SELECT AnsattId, AnsattEpost, AnsattPassord
-                FROM ANSATT
+                FROM EMPLOYEE
                 WHERE AnsattEpost = ?
             ");
 
