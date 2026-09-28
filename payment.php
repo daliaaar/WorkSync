@@ -1,25 +1,24 @@
 <?php
-session_start() ;
+session_start();
 
-//Navn og priser 
 $plans = [
-    'basic' => ['name' => 'Basic plan'. 'price'=> 9.99, 'desc' => 'Up to 10 users']
-    'pro' => ['name' => 'Pro plan', 'price' => 19.99, 'desc' => 'Up to 50 users']
-    'enterprise' => ['name' => 'Enterprise plan', 'price' => 49.99, 'desc' => 'Up to 200 users']
+    'basic'      => ['name' => 'Basic',      'price' => 199, 'desc' => 'Up to 10 employees'],
+    'pro'        => ['name' => 'Pro',        'price' => 499, 'desc' => 'Up to 50 employees'],
+    'enterprise' => ['name' => 'Enterprise', 'price' => 999, 'desc' => 'Unlimited employees'],
 ];
 
-$planKey = $_POST['plan'] ?? $_GET['plan'] ?? $_SESSION['plan'] ?? 'pro'; 
+$planKey = $_POST['plan'] ?? $_GET['plan'] ?? $_SESSION['plan'] ?? 'pro';
 if (!isset($plans[$planKey])) {
     $planKey = 'pro';
 }
-$plans = $plans[$planKey]; 
+$plan = $plans[$planKey];
 
-$success = false; 
-$error = ""; 
+$success = false;
+$error = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $cardName = trim($_POST['cardName'] ?? '');
- 
+
     if ($cardName === '') {
         $error = "Please enter the name on the card";
     } else {
@@ -29,7 +28,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="no">
 <head>
@@ -42,7 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Inter', sans-serif; background: #f4f6fb; min-height: 100vh; }
   .container { display: flex; min-height: 100vh; }
- 
+
   .summary {
     width: 40%;
     background: linear-gradient(160deg, #3b7bff 0%, #2f6df6 45%, #1e4fd1 100%);
@@ -82,7 +80,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   }
   .order .total .amount { font-family: 'Poppins', sans-serif; font-size: 26px; font-weight: 700; }
   .order .total .per { font-size: 13px; color: rgba(255,255,255,0.85); }
- 
+
   .form-side { width: 60%; background: white; padding: 60px 90px; display: flex; flex-direction: column; justify-content: center; }
   .form-side h2 { font-family: 'Poppins', sans-serif; font-size: 28px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
   .form-side .sub { color: #7a7f8c; font-size: 15px; margin-bottom: 28px; }
@@ -98,7 +96,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   input:focus { outline: none; border-color: #2f6df6; background: #fff; box-shadow: 0 0 0 4px rgba(47,109,246,0.12); }
   .row { display: flex; gap: 16px; }
   .row > div { flex: 1; }
- 
+
   button {
     width: 100%; margin-top: 6px;
     background: linear-gradient(135deg, #3b7bff, #2f6df6);
@@ -116,14 +114,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     animation: spin .7s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
- 
+
   .error {
     background: #fff0f0; border: 1px solid #f3c2c2; color: #c0392b;
     padding: 12px 14px; margin-bottom: 20px; border-radius: 8px; font-size: 14px; display: none;
   }
   .error.show { display: block; }
   .secure { text-align: center; color: #9aa0ae; font-size: 12.5px; margin-top: 16px; }
- 
+
   .done { text-align: center; }
   .done .check {
     width: 72px; height: 72px; border-radius: 50%;
@@ -135,7 +133,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     background: linear-gradient(135deg, #3b7bff, #2f6df6); color: white;
     padding: 13px 30px; border-radius: 10px; font-weight: 600; font-size: 15px;
   }
- 
+
   @media (max-width: 900px) {
     .container { flex-direction: column; }
     .summary, .form-side { width: 100%; padding: 32px; }
@@ -152,12 +150,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <div class="plan-name"><?= htmlspecialchars($plan['name']) ?></div>
       <div class="plan-desc"><?= htmlspecialchars($plan['desc']) ?></div>
       <div class="total">
-        <span class="amount"><?= (int)$plan['price'] ?> $</span>
+        <span class="amount"><?= (int)$plan['price'] ?> kr</span>
         <span class="per">per month</span>
       </div>
     </div>
   </div>
- 
+
   <div class="form-side">
     <?php if ($success): ?>
       <div class="done">
@@ -169,19 +167,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <?php else: ?>
       <h2>Payment details</h2>
       <p class="sub">Complete your subscription to get started.</p>
- 
+
       <div class="error <?= $error ? 'show' : '' ?>" id="errorBox"><?= htmlspecialchars($error) ?></div>
- 
+
       <form method="POST" id="payForm" novalidate>
         <input type="hidden" name="plan" value="<?= htmlspecialchars($planKey) ?>">
- 
+
         <label for="cardName">NAME ON CARD</label>
         <input type="text" id="cardName" name="cardName" placeholder="Full name" autocomplete="cc-name">
- 
-    
+
+        <!-- Ingen name-attributt: disse feltene sendes aldri til serveren -->
         <label for="cardNumber">CARD NUMBER</label>
         <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" inputmode="numeric" maxlength="19" autocomplete="cc-number">
- 
+
         <div class="row">
           <div>
             <label for="expiry">EXPIRY</label>
@@ -192,24 +190,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <input type="text" id="cvc" placeholder="123" inputmode="numeric" maxlength="3" autocomplete="cc-csc">
           </div>
         </div>
- 
+
         <button type="submit" id="payBtn"><span class="spinner" id="spinner"></span><span id="btnText">Pay <?= (int)$plan['price'] ?> kr</span></button>
       </form>
       <div class="secure">🔒 Secure payment. This is a demo, no real payment is made.</div>
     <?php endif; ?>
   </div>
 </div>
- 
+
 <script>
 (function () {
   var form = document.getElementById('payForm');
   if (!form) return;
- 
+
   var num = document.getElementById('cardNumber');
   var exp = document.getElementById('expiry');
   var cvc = document.getElementById('cvc');
   var box = document.getElementById('errorBox');
- 
+
   num.addEventListener('input', function () {
     var d = num.value.replace(/\D/g, '').slice(0, 16);
     num.value = d.replace(/(.{4})/g, '$1 ').trim();
@@ -221,19 +219,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   cvc.addEventListener('input', function () {
     cvc.value = cvc.value.replace(/\D/g, '').slice(0, 3);
   });
- 
+
   function fail(msg) {
     box.textContent = msg;
     box.classList.add('show');
   }
- 
+
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     box.classList.remove('show');
- 
+
     if (!document.getElementById('cardName').value.trim()) return fail('Please enter the name on the card');
     if (num.value.replace(/\s/g, '').length !== 16) return fail('Card number must be 16 digits');
- 
+
     var m = exp.value.match(/^(\d{2})\/(\d{2})$/);
     if (!m || +m[1] < 1 || +m[1] > 12) return fail('Enter expiry as MM/YY');
     var now = new Date();
@@ -242,7 +240,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       return fail('This card has expired');
     }
     if (cvc.value.length !== 3) return fail('CVC must be 3 digits');
- 
+
     // Simulert behandling
     document.getElementById('payBtn').disabled = true;
     document.getElementById('spinner').style.display = 'inline-block';
