@@ -205,8 +205,8 @@ nav a:active {
                     <h1> Manage your office</h1>
                     <p>Simplify your workflow</p>
                     <div class="d-flex gap-3">
-                    <a href="signup.php" class="btn"> Sign up your company</a>
-                    <a href="login.php" class="btn"> Log in</a>
+                    <a href="register.php" class="btn"> Sign up your company</a>
+                    <a href="log_in.php" class="btn"> Log in</a>
                     </div>
                 </div>
 

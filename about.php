@@ -98,7 +98,7 @@
 
     <div class="logo-container">
         <a href="/">
-            <img src="/">
+            <img src="WorkSync.png">
         </a>
     </div>
 

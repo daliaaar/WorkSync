@@ -1,16 +1,17 @@
 <?php
 
-$name = $_POST['name'];
-$email = $_POST['email'];
-$phone = $_POST['phone'];
-$company = $_POST['company'];
-$message = $_POST['message'];
+if($_SERVER["REQUEST_METHOD"] == "POST")
+{
+    $name = $_POST['name'];
+    $email = $_POST['email'];
+    $phone = $_POST['phone'];
+    $company = $_POST['company'];
+    $message = $_POST['message'];
 
-$mailheader = "From: ".$name." <".$email.">\r\n";
+    $mailheader = "From: ".$name." <".$email.">\r\n";
 
-$recipient = "worksync@gmail.com";
-
-if(mail($recipient, $company, $message, $mailheader))
+    $recipient = "worksync@gmail.com";
+    if(mail($recipient, $company, $message, $mailheader))
     {
         echo "<script>alert('Message sent successfully!');</script>";
 
@@ -19,6 +20,9 @@ if(mail($recipient, $company, $message, $mailheader))
     {
             echo "<script>alert('Message not sent!');</script>";
     }
+}
+
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -121,7 +125,7 @@ nav a:active {
          <header class="top-header">
         <div class="logo-container">
             <a href="/">
-                <img src="/WorkSync.png" alt="Company Name Logo" class="logo-img" width="150" height="40">
+                <img src="WorkSync.png" alt="Company Name Logo" class="logo-img" width="150" height="40">
             </a>
         </div>
 
