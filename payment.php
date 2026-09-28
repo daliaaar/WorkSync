@@ -2,9 +2,9 @@
 session_start();
 
 $plans = [
-    'basic'      => ['name' => 'Basic',      'price' => 199, 'desc' => 'Up to 10 employees'],
-    'pro'        => ['name' => 'Pro',        'price' => 499, 'desc' => 'Up to 50 employees'],
-    'enterprise' => ['name' => 'Enterprise', 'price' => 999, 'desc' => 'Unlimited employees'],
+    'basic'      => ['name' => 'Basic plan',      'price' => 9.99,  'desc' => 'Up to 10 users'],
+    'pro'        => ['name' => 'Pro plan',        'price' => 19.99, 'desc' => 'Up to 50 users'],
+    'enterprise' => ['name' => 'Enterprise plan', 'price' => 49.99, 'desc' => 'Up to 200 users'],
 ];
 
 $planKey = $_POST['plan'] ?? $_GET['plan'] ?? $_SESSION['plan'] ?? 'pro';
@@ -13,18 +13,19 @@ if (!isset($plans[$planKey])) {
 }
 $plan = $plans[$planKey];
 
-$success = false;
 $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    // Kortnummer, utløpsdato og CVC har ikke name-attributt, så de sendes aldri til serveren.
     $cardName = trim($_POST['cardName'] ?? '');
 
     if ($cardName === '') {
         $error = "Please enter the name on the card";
     } else {
         $_SESSION['paid'] = true;
-        $_SESSION['paid_plan'] = $planKey;
-        $success = true;
+        $_SESSION['plan'] = $planKey;
+        header("Location: register.php");
+        exit();
     }
 }
 ?>
@@ -150,21 +151,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <div class="plan-name"><?= htmlspecialchars($plan['name']) ?></div>
       <div class="plan-desc"><?= htmlspecialchars($plan['desc']) ?></div>
       <div class="total">
-        <span class="amount"><?= (int)$plan['price'] ?> kr</span>
+        <span class="amount">$<?= number_format($plan['price'], 2) ?></span>
         <span class="per">per month</span>
       </div>
     </div>
   </div>
 
   <div class="form-side">
-    <?php if ($success): ?>
-      <div class="done">
-        <div class="check">✓</div>
-        <h2>Payment received</h2>
-        <p class="sub">Thank you! Your <?= htmlspecialchars($plan['name']) ?> plan is now active.</p>
-        <a href="log_in.php">Continue to log in</a>
-      </div>
-    <?php else: ?>
       <h2>Payment details</h2>
       <p class="sub">Complete your subscription to get started.</p>
 
@@ -191,10 +184,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
           </div>
         </div>
 
-        <button type="submit" id="payBtn"><span class="spinner" id="spinner"></span><span id="btnText">Pay <?= (int)$plan['price'] ?> kr</span></button>
+        <button type="submit" id="payBtn"><span class="spinner" id="spinner"></span><span id="btnText">Pay $<?= number_format($plan['price'], 2) ?></span></button>
       </form>
       <div class="secure">🔒 Secure payment. This is a demo, no real payment is made.</div>
-    <?php endif; ?>
   </div>
 </div>
 
