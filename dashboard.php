@@ -124,7 +124,7 @@ body {
 
 <div class="sidebar">
     <div class="sidebar-logo">
-        <img src="Images/WorkSyncLogo.png" alt="WorkSync Logo">
+        <img src="WorkSync.png" alt="WorkSync Logo">
     </div>
 
     <!-- PÅ DASHBOARD-SIDEN ER DASHBOARD ACTIVE -->
