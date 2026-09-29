@@ -8,15 +8,15 @@ session_start();
 
 /* --- 1. TILGANGSKONTROLL --------------------------------------------
    Sender ikke-innloggede brukere tilbake til innloggingssiden.
-   Kommenter ut blokken under hvis du vil teste siden uten innlogging. */
+   Kommenter ut blokken under hvis du vil teste siden uten innlogging. 
 if (empty($_SESSION['logged_in'])) {
     header("Location: log_in.php");
     exit();
-}
+}*/
 
 $role     = $_SESSION['role']     ?? 'employee';
 $userId   = $_SESSION['userId']   ?? 0;
-$userName = $_SESSION['userName'] ?? 'Ukjent bruker';
+$userName = $_SESSION['userName'] ?? 'Unknown user';
 
 /* Pen visning av rolle i toppmenyen */
 $roleLabels = [
@@ -82,7 +82,7 @@ function fetchRows($conn, $sql, $types = '', $params = [])
 /** Viser et tall, eller en strek hvis databasen ikke svarte. */
 function num($value)
 {
-    return $value === null ? '–' : number_format($value, 0, ',', ' ');
+    return $value === null ? '–' : number_format($value);
 }
 
 /* --- 3. NØKKELTALL ---------------------------------------------------
@@ -175,7 +175,7 @@ function erForfalt($frist)
 }
 ?>
 <!DOCTYPE html>
-<html lang="no">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -504,37 +504,37 @@ tr:last-child td {
 
 <div class="dashboard">
 
-    <h1 class="page-title">Hei, <?= htmlspecialchars($userName) ?></h1>
+    <h1 class="page-title">Hello, <?= htmlspecialchars($userName) ?></h1>
     <p class="page-subtitle">
-        Oversikt for <?= htmlspecialchars(strtolower($roleLabel)) ?> &middot;
-        <?= date('d.m.Y') ?>
+        Overview for <?= htmlspecialchars(strtolower($roleLabel)) ?> &middot;
+        <?= date('j M Y') ?>
     </p>
 
     <!-- NØKKELTALL -->
     <div class="kpi-grid">
 
         <div class="info-box">
-            <div class="label">Ansatte</div>
+            <div class="label">Employees</div>
             <div class="value"><?= num($antallAnsatte) ?></div>
-            <div class="note">Registrert i systemet</div>
+            <div class="note">Registered in the system</div>
         </div>
 
         <div class="info-box green">
-            <div class="label">Kontorer</div>
+            <div class="label">Offices</div>
             <div class="value"><?= num($antallKontorer) ?></div>
-            <div class="note"><?= num($ledigeMoterom) ?> ledige møterom</div>
+            <div class="note"><?= num($ledigeMoterom) ?> meeting rooms available</div>
         </div>
 
         <div class="info-box yellow">
-            <div class="label"><?= $role === 'employee' ? 'Mine oppgaver' : 'Åpne oppgaver' ?></div>
+            <div class="label"><?= $role === 'employee' ? 'My tasks' : 'Open tasks' ?></div>
             <div class="value"><?= num($apneOppgaver) ?></div>
-            <div class="note"><?= num($forfalt) ?> over frist</div>
+            <div class="note"><?= num($forfalt) ?> overdue</div>
         </div>
 
         <div class="info-box red">
-            <div class="label">Avvik</div>
+            <div class="label">Deviations</div>
             <div class="value"><?= num($antallAvvik) ?></div>
-            <div class="note">Innmeldte rapporter</div>
+            <div class="note">Reported issues</div>
         </div>
 
     </div>
@@ -546,69 +546,69 @@ tr:last-child td {
 
             <div class="panel">
                 <h3>
-                    <?= $role === 'employee' ? 'Mine oppgaver' : 'Oppgaver med nærmeste frist' ?>
-                    <a href="reports.php">Se alle</a>
+                    <?= $role === 'employee' ? 'My tasks' : 'Upcoming deadlines' ?>
+                    <a href="reports.php">View all</a>
                 </h3>
 
                 <?php if ($oppgaver): ?>
                     <table>
                         <tr>
-                            <th>Beskrivelse</th>
-                            <th>Ansvarlig</th>
-                            <th>Frist</th>
+                            <th>Description</th>
+                            <th>Assigned to</th>
+                            <th>Due date</th>
                         </tr>
                         <?php foreach ($oppgaver as $o): ?>
                             <tr>
                                 <td><?= htmlspecialchars($o['Beskrivelse'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($o['AnsattEpost'] ?? 'Ikke tildelt') ?></td>
+                                <td><?= htmlspecialchars($o['AnsattEpost'] ?? 'Unassigned') ?></td>
                                 <td>
                                     <?php if (erForfalt($o['Frist'])): ?>
                                         <span class="badge late">
-                                            <?= htmlspecialchars(date('d.m.Y', strtotime($o['Frist']))) ?>
+                                            <?= htmlspecialchars(date('j M Y', strtotime($o['Frist']))) ?>
                                         </span>
                                     <?php elseif ($o['Frist']): ?>
                                         <span class="badge">
-                                            <?= htmlspecialchars(date('d.m.Y', strtotime($o['Frist']))) ?>
+                                            <?= htmlspecialchars(date('j M Y', strtotime($o['Frist']))) ?>
                                         </span>
                                     <?php else: ?>
-                                        <span class="badge">Ingen frist</span>
+                                        <span class="badge">No due date</span>
                                     <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     </table>
                 <?php else: ?>
-                    <p class="empty">Ingen registrerte oppgaver.</p>
+                    <p class="empty">No tasks registered.</p>
                 <?php endif; ?>
             </div>
 
             <div class="panel">
                 <h3>
-                    Sist registrerte avvik
-                    <a href="reports.php">Se alle</a>
+                    Latest deviations
+                    <a href="reports.php">View all</a>
                 </h3>
 
                 <?php if ($avvik): ?>
                     <table>
                         <tr>
-                            <th>Beskrivelse</th>
-                            <th>Meldt av</th>
-                            <th>Frist</th>
+                            <th>Description</th>
+                            <th>Reported by</th>
+                            <th>Due date</th>
                         </tr>
                         <?php foreach ($avvik as $a): ?>
                             <tr>
                                 <td><?= htmlspecialchars($a['Beskrivelse'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($a['AnsattEpost'] ?? 'Ukjent') ?></td>
+                                <td><?= htmlspecialchars($a['AnsattEpost'] ?? 'Unknown') ?></td>
                                 <td>
                                     <?= $a['Frist']
-                                        ? htmlspecialchars(date('d.m.Y', strtotime($a['Frist'])))
+                                        ? htmlspecialchars(date('j M Y', strtotime($a['Frist'])))
                                         : '–' ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     </table>
                 <?php else: ?>
-                    <p class="empty">Ingen avvik meldt inn.</p>
+                    <p class="empty">No deviations reported.</p>
                 <?php endif; ?>
             </div>
 
@@ -618,20 +618,20 @@ tr:last-child td {
         <div>
 
             <div class="panel">
-                <h3>Møteromsbelegg</h3>
+                <h3>Meeting room occupancy</h3>
                 <div class="progress">
                     <span style="width: <?= (int) $belegg ?>%"></span>
                 </div>
                 <p class="note" style="font-size:13px;color:#6b7c8f;margin:0;">
-                    <?= (int) $belegg ?>% opptatt &middot;
-                    <?= num($ledigeMoterom) ?> av <?= num($antallMoterom) ?> ledige
+                    <?= (int) $belegg ?>% occupied &middot;
+                    <?= num($ledigeMoterom) ?> of <?= num($antallMoterom) ?> available
                 </p>
             </div>
 
             <div class="panel">
                 <h3>
-                    Ansatte
-                    <a href="employees.php">Se alle</a>
+                    Employees
+                    <a href="employees.php">View all</a>
                 </h3>
 
                 <?php if ($ansatte): ?>
@@ -641,29 +641,29 @@ tr:last-child td {
                                 <td><?= htmlspecialchars($e['AnsattEpost'] ?? '') ?></td>
                                 <td style="text-align:right;">
                                     <span class="badge <?= statusClass($e['Tilgjengelighet']) ?>">
-                                        <?= htmlspecialchars($e['Tilgjengelighet'] ?: 'Ukjent') ?>
+                                        <?= htmlspecialchars($e['Tilgjengelighet'] ?: 'Unknown') ?>
                                     </span>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     </table>
                 <?php else: ?>
-                    <p class="empty">Ingen ansatte registrert.</p>
+                    <p class="empty">No employees registered.</p>
                 <?php endif; ?>
             </div>
 
             <div class="panel quick-links">
-                <h3>Snarveier</h3>
+                <h3>Shortcuts</h3>
                 <?php if ($role !== 'employee'): ?>
-                    <a href="employees.php?action=new">+ Legg til ansatt</a>
-                    <a href="equipment.php?action=new">+ Registrer utstyr</a>
-                    <a href="office.php?action=new">+ Opprett kontor</a>
-                    <a href="manager_dashboard.php">Deleger oppgave</a>
+                    <a href="employees.php?action=new">+ Add employee</a>
+                    <a href="equipment.php?action=new">+ Register equipment</a>
+                    <a href="office.php?action=new">+ Create office</a>
+                    <a href="manager_dashboard.php">Delegate task</a>
                 <?php else: ?>
-                    <a href="office.php">Reserver møterom</a>
-                    <a href="equipment.php">Reserver utstyr</a>
-                    <a href="reports.php?action=new">Meld inn avvik</a>
-                    <a href="settings.php">Endre tilgjengelighet</a>
+                    <a href="office.php">Book meeting room</a>
+                    <a href="equipment.php">Reserve equipment</a>
+                    <a href="reports.php?action=new">Report deviation</a>
+                    <a href="settings.php">Change availability</a>
                 <?php endif; ?>
             </div>
 
