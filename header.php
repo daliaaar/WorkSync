@@ -22,11 +22,11 @@ if (session_status() === PHP_SESSION_NONE) {
 /* --- TILGANGSKONTROLL -----------------------------------------------
    Sender ikke-innloggede brukere til innloggingssiden.
    Kommenter ut de fire linjene hvis du vil teste sidene uten
-   innlogging mens databasen ikke er satt opp ennå. */
+   innlogging mens databasen ikke er satt opp ennå. 
 if (empty($_SESSION['logged_in'])) {
     header("Location: log_in.php");
     exit();
-}
+}*/
 
 $role     = $_SESSION['role']     ?? 'employee';
 $userId   = $_SESSION['userId']   ?? 0;

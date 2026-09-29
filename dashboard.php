@@ -1,15 +1,9 @@
 <?php
-/* WorkSync – Dashboard
-   Rollebasert oversikt jf. SRD kap. 2.1 */
 
 $pageTitle  = "Dashboard";
 $activePage = "dashboard";
 require 'header.php';
 
-/* --- NØKKELTALL ------------------------------------------------------
-   SRD kap. 2.1: "Dashboardet viser overordnet informasjon som hvor
-   mange møterom det er, antall ansatte, oppgaver som må utføres eller
-   sist registrerte hendelser." */
 
 $antallAnsatte  = countRows($conn, "SELECT COUNT(*) FROM EMPLOYEE");
 $antallKontorer = countRows($conn, "SELECT COUNT(*) FROM OFFICE");
