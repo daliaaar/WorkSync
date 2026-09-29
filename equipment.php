@@ -1,159 +1,68 @@
-<!DOCTYPE html>
-<html lang="no">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WorkSync Equipment</title>
-<style>
+<?php
+/* WorkSync – Equipment
+   SRD kap. 2.1: ansatte ser og reserverer utstyr, manager registrerer
+   nytt utstyr og ser kjøpsdato og garanti.
 
-/* --- GLOBAL --- */
-* {
-    box-sizing: border-box;
-}
+   MERK: EQUIPMENT-tabellen finnes ikke i database.sql ennå. Spørringen
+   under returnerer derfor tom liste inntil tabellen er opprettet. */
 
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f7f7f7;
-}
+$pageTitle  = "Equipment";
+$activePage = "equipment";
+require 'header.php';
 
-/* --- SIDEBAR --- */
-.sidebar {
-    width: 220px;
-    height: 100vh;
-    background-color: #1e3a5f;
-    color: white;
-    position: fixed;
-    left: 0;
-    top: 0;
-    padding: 20px;
-    /* Flexbox for å dytte footeren nederst */
-    display: flex;
-    flex-direction: column;
-}
+$utstyr = fetchRows(
+    $conn,
+    "SELECT UtstyrId, Navn, Type, Status, Kjopsdato, Garanti, AnsattId
+       FROM EQUIPMENT
+      ORDER BY UtstyrId ASC"
+);
+?>
 
-.sidebar-logo {
-    width: 100%;
-    text-align: center;
-    margin-bottom: 30px;
-}
+<div class="dashboard">
 
-.sidebar-logo img {
-    width: 140px;
-    height: auto;
-}
+    <h1 class="page-title">Equipment</h1>
+    <p class="page-subtitle">Equipment available to employees</p>
 
-.sidebar a {
-    display: block;
-    color: white;
-    text-decoration: none;
-    margin: 10px 0;
-    font-size: 18px;
-}
+    <div class="panel">
+        <h3>
+            All equipment
+            <?php if ($role !== 'employee'): ?>
+                <a href="equipment.php?action=new">+ Register equipment</a>
+            <?php endif; ?>
+        </h3>
 
-.sidebar a.active {
-    background-color: #294a75;
-    padding: 10px;
-    border-radius: 6px;
-}
-
-/* Plasserer footeren helt i bunn av menyen */
-.sidebar-footer {
-    margin-top: auto;
-    text-align: center;
-    font-size: 12px;
-    color: #a0b2c6;
-    padding-top: 15px;
-    border-top: 1px solid #294a75;
-}
-
-/* --- TOP HEADER --- */
-.top-header {
-    margin-left: 220px;
-    height: 70px;
-    background-color: white;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 25px;
-    border-bottom: 1px solid #ddd;
-}
-
-.search-box input {
-    padding: 8px 12px;
-    width: 250px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-}
-
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.user-status {
-    width: 12px;
-    height: 12px;
-    background-color: #4CAF50;
-    border-radius: 50%;
-}
-
-/* --- DASHBOARD --- */
-.dashboard {
-    margin-left: 220px;
-    padding: 20px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-}
-
-
-</style>
-</head>
-
-<body>
-
-<div class="sidebar">
-    <div class="sidebar-logo">
-        <img src="WorkSync.png" alt="WorkSync Logo">
+        <?php if ($utstyr): ?>
+            <table>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <?php if ($role !== 'employee'): ?>
+                        <th>Purchased</th>
+                        <th>Warranty</th>
+                    <?php endif; ?>
+                    <th>Status</th>
+                </tr>
+                <?php foreach ($utstyr as $u): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($u['Navn'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($u['Type'] ?? '') ?></td>
+                        <?php if ($role !== 'employee'): ?>
+                            <td><?= $u['Kjopsdato'] ? htmlspecialchars(date('j M Y', strtotime($u['Kjopsdato']))) : '–' ?></td>
+                            <td><?= $u['Garanti'] ? htmlspecialchars(date('j M Y', strtotime($u['Garanti']))) : '–' ?></td>
+                        <?php endif; ?>
+                        <td>
+                            <span class="badge <?= statusClass($u['Status']) ?>">
+                                <?= htmlspecialchars($u['Status'] ?: 'Unknown') ?>
+                            </span>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </table>
+        <?php else: ?>
+            <p class="empty">No equipment registered.</p>
+        <?php endif; ?>
     </div>
 
-    <!-- PÅ DASHBOARD-SIDEN ER DASHBOARD ACTIVE -->
-    <a href="dashboard.php">Dashboard</a>
-    <a href="office.php">Offices</a>
-    <a href="employees.php">Employees</a>
-    <a href="equipment.php" class="active">Equipment</a>
-    <a href="reports.php">Reports</a>
-    <a href="settings.php">Settings</a>
-
-    <footer class="sidebar-footer">
-        &copy; 2026 WorkSync.<br>All rights reserved.
-    </footer>
-</div>
-<!-- TOP HEADER -->
-<div class="top-header">
-    <div class="search-box">
-        <input type="text" placeholder="Search...">
-    </div>
-
-    <div class="user-info">
-        <div class="user-status"></div>
-        <span>Jens (Admin)</span>
-    </div>
 </div>
 
-
-<script>
-    const links = document.querySelectorAll('.sidebar a');
-
-    links.forEach(link => {
-        link.addEventListener('click', () => {
-            links.forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
-        });
-    });
-</script>
-
-</body>
-</html>
+<?php require 'footer.php'; ?>
