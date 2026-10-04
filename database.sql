@@ -87,3 +87,14 @@ CREATE TABLE PasswordReset (
     Token VARCHAR(64) NOT NULL,
     ExpiresAt DATETIME NOT NULL
 );
+
+CREATE TABLE EQUIPMENT (
+    UtstyrId  INT AUTO_INCREMENT PRIMARY KEY,
+    Navn      VARCHAR(100) NOT NULL,
+    Type      VARCHAR(100),
+    Status    VARCHAR(50) NOT NULL DEFAULT 'Available',
+    Kjopsdato DATE,
+    Garanti   DATE,
+    AnsattId  INT NULL,
+    FOREIGN KEY (AnsattId) REFERENCES EMPLOYEE(AnsattId) ON DELETE SET NULL
+);

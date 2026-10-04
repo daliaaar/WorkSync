@@ -1,20 +1,22 @@
 <?php
 session_start();
-require 'config.php'; // Sett inn tilkobling ($conn = mysqli connection)
+require_once __DIR__ . '/config.php'; // skal sette $conn (mysqli-tilkobling)
 
 $error = "";
+$success_message = "";
 $email = "";
 $companyName = "";
 $phone = "";
 $managerName = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $email        = trim($_POST['email'] ?? '');
-    $companyName  = trim($_POST['companyName'] ?? '');
-    $phone        = trim($_POST['phone'] ?? '');
-    $managerName  = trim($_POST['managerName'] ?? '');
+    $email           = trim($_POST['email'] ?? '');
+    $companyName     = trim($_POST['companyName'] ?? '');
+    $phone           = trim($_POST['phone'] ?? '');
+    $managerName     = trim($_POST['managerName'] ?? '');
     $password        = $_POST['password'] ?? '';
     $passwordConfirm = $_POST['confirmPassword'] ?? '';
+    $termsAccepted   = isset($_POST['terms']);
 
     // Validering
     if (empty($email) || empty($password) || empty($companyName) || empty($phone) || empty($managerName)) {
@@ -25,49 +27,58 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $error = "Password must be at least 16 characters";
     } elseif ($password !== $passwordConfirm) {
         $error = "Passwords do not match";
+    } elseif (!$termsAccepted) {
+        $error = "You must accept the terms and conditions";
+    } elseif (!isset($conn) || !($conn instanceof mysqli)) {
+        $error = "Database connection is not available";
     } else {
-        // Sjekker om e-posten allerede finnes
-        $stmt = $conn->prepare(
-            "SELECT AdminId AS userId, 'admin' AS role
-             FROM ADMINISTRATOR
-             WHERE Epost = ?
+        try {
+            // Sjekker om e-posten allerede finnes
+            $stmt = $conn->prepare(
+                "SELECT AdminId AS userId, 'admin' AS role
+                 FROM ADMINISTRATOR
+                 WHERE Epost = ?
 
-             UNION
+                 UNION
 
-             SELECT BedriftsId AS userId, 'manager' AS role
-             FROM COMPANYMANAGER
-             WHERE Epost = ?
+                 SELECT BedriftsId AS userId, 'manager' AS role
+                 FROM COMPANYMANAGER
+                 WHERE Epost = ?
 
-             UNION
+                 UNION
 
-             SELECT AnsattId AS userId, 'employee' AS role
-             FROM EMPLOYEE
-             WHERE AnsattEpost = ?"
-        );
-        $stmt->bind_param("sss", $email, $email, $email);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($result->num_rows > 0) {
-            $error = "Email already exists";
-        } else {
-            // Registrer ny bedriftsleder
-            $hash = password_hash($password, PASSWORD_DEFAULT);
-            $insertStmt = $conn->prepare(
-                "INSERT INTO COMPANYMANAGER (Epost, Passord, Telefonnr, BedriftsNavn, Navn)
-                 VALUES (?, ?, ?, ?, ?)"
+                 SELECT AnsattId AS userId, 'employee' AS role
+                 FROM EMPLOYEE
+                 WHERE AnsattEpost = ?"
             );
-            $insertStmt->bind_param("sssss", $email, $hash, $phone, $companyName, $managerName);
+            $stmt->bind_param("sss", $email, $email, $email);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $emailExists = $result->num_rows > 0;
+            $stmt->close();
 
-            if ($insertStmt->execute()) {
-                $success_message = "Company registered!";
+            if ($emailExists) {
+                $error = "Email already exists";
             } else {
-                $error = "Registration failed";
-            }
-            $insertStmt->close();
-        }
+                // Registrer ny bedriftsleder
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+                $insertStmt = $conn->prepare(
+                    "INSERT INTO COMPANYMANAGER (Epost, Passord, Telefonnr, BedriftsNavn, Navn)
+                     VALUES (?, ?, ?, ?, ?)"
+                );
+                $insertStmt->bind_param("sssss", $email, $hash, $phone, $companyName, $managerName);
+                $insertStmt->execute();
+                $insertStmt->close();
 
-        $stmt->close();
+                $success_message = "Company registered! You can now log in.";
+
+                // Tøm skjemaet etter vellykket registrering
+                $email = $companyName = $phone = $managerName = "";
+            }
+        } catch (mysqli_sql_exception $e) {
+            error_log('Register error: ' . $e->getMessage());
+            $error = "Registration failed. Please try again later.";
+        }
     }
 }
 ?>
@@ -324,7 +335,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <div class="benefit">
             <div class="icon">📊</div>
             <div>
-                <h3>Data-driven desicions</h3>
+                <h3>Data-driven decisions</h3>
                 <p>Reports and insights in seconds</p>
             </div>
         </div>
@@ -348,6 +359,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <?php if (!empty($success_message)): ?>
             <div class="error-message" style="background-color:#e5ffe9; border-color:#0a8a2b; color:#0a6b21;">
                 <?= htmlspecialchars($success_message) ?>
+                <a href="log_in.php">Log in</a>
             </div>
         <?php endif; ?>
         <form method="POST" action="">
@@ -396,7 +408,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 type="password"
                 id="password"
                 name="password"
-                placeholder="Enter password"
+                placeholder="Enter password (min. 16 characters)"
+                minlength="16"
                 required
             >
             <label for="confirmPassword">CONFIRM PASSWORD</label>
@@ -413,6 +426,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     type="checkbox"
                     id="terms"
                     name="terms"
+                    required
                 >
                 <label for="terms">
                     I AGREE TO THE TERMS<br>

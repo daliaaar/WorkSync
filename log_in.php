@@ -1,13 +1,28 @@
 <?php
 session_start();
-require 'config.php'; // må endre til det som faktisk kobler til databasen 
+require_once __DIR__ . '/config.php';
+/* --- UTLOGGING ------------------------------------------------------
+   Menyen i header.php lenker til log_in.php?logout=1 */
+if (isset($_GET['logout'])) {
+    $_SESSION = [];
+    session_destroy();
+    header("Location: log_in.php");
+    exit();
+}
+
+/* Hvis du allerede er innlogget, gå rett til dashboardet */
+if (!empty($_SESSION['logged_in'])) {
+    header("Location: dashboard.php");
+    exit();
+}
 
 $error = "";
+$success_message = "";
 $email = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    $email = trim($_POST['email'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
     if (empty($email) || empty($password)) {
@@ -18,129 +33,89 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $error = "Invalid email format";
 
+    } elseif (!isset($conn) || !($conn instanceof mysqli)) {
+
+        /* config.php må sette opp $conn = new mysqli(...) */
+        $error = "Database connection is not available";
+
     } else {
 
-        $user = null;
-        $role = null;
+        /* Hver rolle: tabell, kolonner og hva som skal vises som brukernavn.
+           Rekkefølgen er sjekkrekkefølgen: admin, manager, employee. */
+        $roles = [
+            'admin' => [
+                'table' => 'ADMINISTRATOR',
+                'id'    => 'AdminId',
+                'email' => 'Epost',
+                'pass'  => 'Passord',
+                'name'  => 'Epost',
+            ],
+            'manager' => [
+                'table' => 'COMPANYMANAGER',
+                'id'    => 'BedriftsId',
+                'email' => 'Epost',
+                'pass'  => 'Passord',
+                'name'  => 'Navn',
+            ],
+            'employee' => [
+                'table' => 'EMPLOYEE',
+                'id'    => 'AnsattId',
+                'email' => 'AnsattEpost',
+                'pass'  => 'AnsattPassord',
+                'name'  => 'AnsattEpost',
+            ],
+        ];
 
-        
-        // Sjekk Administrator
-        
-        $stmt = $conn->prepare("
-            SELECT AdminId, Epost, Passord
-            FROM ADMINISTRATOR
-            WHERE Epost = ?
-        ");
+        $role     = null;
+        $userId   = null;
+        $userName = null;
 
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
+        try {
+            foreach ($roles as $roleName => $c) {
 
-        $result = $stmt->get_result();
+                $sql = "SELECT * FROM {$c['table']} WHERE {$c['email']} = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("s", $email);
+                $stmt->execute();
+                $result = $stmt->get_result();
 
-        if ($result->num_rows === 1) {
+                if ($result->num_rows === 1) {
+                    $row = $result->fetch_assoc();
 
-            $user = $result->fetch_assoc();
+                    if (password_verify($password, $row[$c['pass']])) {
+                        $role     = $roleName;
+                        $userId   = $row[$c['id']];
+                        $userName = $row[$c['name']];
+                    }
+                }
 
-            if (password_verify($password, $user['Passord'])) {
-                $role = "admin";
-            }
-        }
+                $stmt->close();
 
-        $stmt->close();
-
-
-        //Sjekk om det er bedriftsleder som logger inn (manager)
-        
-        if ($user === null || $role === null) {
-
-            $stmt = $conn->prepare("
-                SELECT BedriftsId, Navn, Epost, Passord
-                FROM COMPANYMANAGER
-                WHERE Epost = ?
-            ");
-
-            $stmt->bind_param("s", $email);
-            $stmt->execute();
-
-            $result = $stmt->get_result();
-
-            if ($result->num_rows === 1) {
-
-                $user = $result->fetch_assoc();
-
-                if (password_verify($password, $user['Passord'])) {
-                    $role = "manager";
+                if ($role !== null) {
+                    break;
                 }
             }
-
-            $stmt->close();
+        } catch (mysqli_sql_exception $e) {
+            error_log('Login error: ' . $e->getMessage());
+            $error = "Something went wrong. Please try again later.";
         }
 
-
-        // Sjekk om det er vanlig ansatt som logger inn 
-        if ($user === null || $role === null) {
-
-            $stmt = $conn->prepare("
-                SELECT AnsattId, AnsattEpost, AnsattPassord
-                FROM EMPLOYEE
-                WHERE AnsattEpost = ?
-            ");
-
-            $stmt->bind_param("s", $email);
-            $stmt->execute();
-
-            $result = $stmt->get_result();
-
-            if ($result->num_rows === 1) {
-
-                $user = $result->fetch_assoc();
-
-                if (password_verify($password, $user['AnsattPassord'])) {
-                    $role = "employee";
-                }
-            }
-
-            $stmt->close();
-        }
-
-
-        // Log in 
         if ($role !== null) {
 
             session_regenerate_id(true);
 
             $_SESSION['logged_in'] = true;
-            $_SESSION['role'] = $role;
-            $_SESSION['email'] = $email;
+            $_SESSION['role']      = $role;
+            $_SESSION['email']     = $email;
+            $_SESSION['userId']    = $userId;
+            $_SESSION['userName']  = $userName;
 
+            /* Alle roller sendes til samme dashboard. header.php tilpasser
+               menyen etter rolle. */
+            header("Location: dashboard.php");
+            exit();
 
-            // Lagrer riktig ID 
-            if ($role === "admin") {
-
-                $_SESSION['userId'] = $user['AdminId'];
-                $_SESSION['userName'] = $user['Epost'];
-
-                header("Location: admin/admin_dashboard.php"); // Sett inn riktig navn 
-                exit();
-
-            } elseif ($role === "manager") {
-
-                $_SESSION['userId'] = $user['BedriftsId'];
-                $_SESSION['userName'] = $user['Navn'];
-
-                header("Location: manager/manager_dashboard.php"); // Sett inn riktig navn
-                exit();
-
-            } elseif ($role === "employee") {
-
-                $_SESSION['userId'] = $user['AnsattId'];
-                $_SESSION['userName'] = $user['AnsattEpost'];
-
-                header("Location: employee/employee_dashboard.php"); //Sett inn riktig navn 
-                exit();
-            }
-
-        } else {
+        } elseif ($error === "") {
 
             $error = "Invalid email or password";
         }
@@ -152,6 +127,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <html lang="no">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Log in - WorkSync</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">

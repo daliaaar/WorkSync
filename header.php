@@ -8,7 +8,7 @@
        <?php
        $pageTitle  = "Employees";
        $activePage = "employees";
-       require 'header.php';
+       require __DIR__ . '/header.php';
        ?>
 
    Filen tar seg av: session, tilgangskontroll, <head>, sidemenyen
@@ -20,13 +20,15 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 /* --- TILGANGSKONTROLL -----------------------------------------------
-   Sender ikke-innloggede brukere til innloggingssiden.
-   Kommenter ut de fire linjene hvis du vil teste sidene uten
-   innlogging mens databasen ikke er satt opp ennå. 
-if (empty($_SESSION['logged_in'])) {
+   Sett til false for å teste sidene uten innlogging mens databasen
+   ikke er satt opp ennå. HUSK å sette den til true igjen før andre
+   får bruke systemet. */
+$krevInnlogging = true;
+
+if ($krevInnlogging && empty($_SESSION['logged_in'])) {
     header("Location: log_in.php");
     exit();
-}*/
+}
 
 $role     = $_SESSION['role']     ?? 'employee';
 $userId   = $_SESSION['userId']   ?? 0;
@@ -40,6 +42,20 @@ $roleLabels = [
 ];
 $roleLabel = $roleLabels[$role] ?? 'Employee';
 
+/**
+ * Kall denne øverst på sider som bare enkelte roller skal se,
+ * f.eks. requireRole(['admin', 'manager']); i manager_dashboard.php.
+ * (Menyen skjuler bare lenken – selve siden må også beskyttes.)
+ */
+function requireRole(array $allowed)
+{
+    global $role;
+    if (!in_array($role, $allowed, true)) {
+        http_response_code(403);
+        exit('Du har ikke tilgang til denne siden.');
+    }
+}
+
 /* --- DATABASETILKOBLING ---------------------------------------------
    config.php skal sette opp $conn (mysqli). Hvis filen mangler, kjører
    sidene videre med tomme tall slik at designet fortsatt kan vises. */
@@ -50,47 +66,58 @@ if (file_exists(__DIR__ . '/config.php')) {
 
 /**
  * Kjører en COUNT-spørring og returnerer tallet.
- * Returnerer null hvis databasen ikke er tilgjengelig.
+ * Returnerer null hvis databasen ikke er tilgjengelig eller spørringen feiler.
  */
 function countRows($conn, $sql, $types = '', $params = [])
 {
     if (!$conn) {
         return null;
     }
-    $stmt = @$conn->prepare($sql);
-    if (!$stmt) {
+    try {
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            return null;
+        }
+        if ($types !== '') {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row = $res ? $res->fetch_row() : null;
+        $stmt->close();
+        return $row ? (int) $row[0] : 0;
+    } catch (mysqli_sql_exception $e) {
+        error_log('countRows: ' . $e->getMessage());
         return null;
     }
-    if ($types !== '') {
-        $stmt->bind_param($types, ...$params);
-    }
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $row = $res ? $res->fetch_row() : null;
-    $stmt->close();
-    return $row ? (int) $row[0] : 0;
 }
 
 /**
- * Henter flere rader som assoc-array. Tom liste hvis databasen mangler.
+ * Henter flere rader som assoc-array. Tom liste hvis databasen mangler
+ * eller spørringen feiler.
  */
 function fetchRows($conn, $sql, $types = '', $params = [])
 {
     if (!$conn) {
         return [];
     }
-    $stmt = @$conn->prepare($sql);
-    if (!$stmt) {
+    try {
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            return [];
+        }
+        if ($types !== '') {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $res  = $stmt->get_result();
+        $rows = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+        $stmt->close();
+        return $rows;
+    } catch (mysqli_sql_exception $e) {
+        error_log('fetchRows: ' . $e->getMessage());
         return [];
     }
-    if ($types !== '') {
-        $stmt->bind_param($types, ...$params);
-    }
-    $stmt->execute();
-    $res  = $stmt->get_result();
-    $rows = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
-    $stmt->close();
-    return $rows;
 }
 
 /** Viser et tall, eller en strek hvis databasen ikke svarte. */
@@ -103,6 +130,10 @@ function num($value)
 function statusClass($status)
 {
     $s = strtolower(trim((string) $status));
+
+    /* "unavailable" inneholder "available", så den må sjekkes først */
+    if (str_contains($s, 'unavailable') || str_contains($s, 'utilgjengelig')) return 'off';
+
     if (str_contains($s, 'available') || str_contains($s, 'tilgjengelig')) return 'ok';
     if (str_contains($s, 'busy')      || str_contains($s, 'disturb'))      return 'busy';
     if (str_contains($s, 'away')      || str_contains($s, 'borte'))        return 'away';
@@ -112,7 +143,7 @@ function statusClass($status)
 /** Er fristen passert? */
 function erForfalt($frist)
 {
-    return $frist && strtotime($frist) < strtotime('today');
+    return !empty($frist) && strtotime($frist) < strtotime('today');
 }
 
 /* Standardverdier hvis siden glemmer å sette dem */
@@ -121,14 +152,14 @@ $activePage = $activePage ?? '';
 
 /* Menyvalgene. 'roles' styrer hvem som ser lenken. */
 $menu = [
-    ['key' => 'dashboard',  'label' => 'Dashboard',   'url' => 'dashboard.php'],
-    ['key' => 'office',     'label' => 'Offices',     'url' => 'office.php'],
-    ['key' => 'employees',  'label' => 'Employees',   'url' => 'employees.php'],
-    ['key' => 'equipment',  'label' => 'Equipment',   'url' => 'equipment.php'],
-    ['key' => 'reports',    'label' => 'Reports',     'url' => 'reports.php'],
-    ['key' => 'maintenance','label' => 'Maintenance', 'url' => 'manager_dashboard.php',
+    ['key' => 'dashboard',   'label' => 'Dashboard',   'url' => 'dashboard.php'],
+    ['key' => 'office',      'label' => 'Offices',     'url' => 'office.php'],
+    ['key' => 'employees',   'label' => 'Employees',   'url' => 'employees.php'],
+    ['key' => 'equipment',   'label' => 'Equipment',   'url' => 'equipment.php'],
+    ['key' => 'reports',     'label' => 'Reports',     'url' => 'reports.php'],
+    ['key' => 'maintenance', 'label' => 'Maintenance', 'url' => 'manager_dashboard.php',
      'roles' => ['admin', 'manager']],
-    ['key' => 'settings',   'label' => 'Settings',    'url' => 'settings.php'],
+    ['key' => 'settings',    'label' => 'Settings',    'url' => 'settings.php'],
 ];
 ?>
 <!DOCTYPE html>
@@ -136,7 +167,7 @@ $menu = [
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WorkSync <?= htmlspecialchars($pageTitle) ?></title>
+<title>WorkSync – <?= htmlspecialchars($pageTitle) ?></title>
 <link rel="stylesheet" href="style.css">
 </head>
 
@@ -156,7 +187,7 @@ $menu = [
         }
         $isActive = ($activePage === $item['key']) ? ' class="active"' : '';
         ?>
-        <a href="<?= $item['url'] ?>"<?= $isActive ?>><?= $item['label'] ?></a>
+        <a href="<?= htmlspecialchars($item['url']) ?>"<?= $isActive ?>><?= htmlspecialchars($item['label']) ?></a>
     <?php endforeach; ?>
 
     <a href="log_in.php?logout=1" class="logout">Log out</a>

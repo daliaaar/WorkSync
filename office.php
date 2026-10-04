@@ -73,6 +73,14 @@ $moterom = fetchRows(
                                     <?= htmlspecialchars($m['Tilgjengelighet'] ?: 'Unknown') ?>
                                 </span>
                             </td>
+
+                            <td style="text-align:right;">
+                                <?php if($role === 'employee' && $m['Tilgjengelighet'] === 'Available'): ?>
+                                    <a href="bookingroom.php?id=<?= (int) $m['MoreromId']?>">
+                                        Book room 
+                                    </a>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </table>
