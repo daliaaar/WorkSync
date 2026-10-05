@@ -32,7 +32,7 @@ $moterom = fetchRows(
             <h3>
                 Offices
                 <?php if ($role !== 'employee'): ?>
-                    <a href="office.php?action=new">+ Create office</a>
+                    <a href="createOffice.php?action=new">+ Create office</a>
                 <?php endif; ?>
             </h3>
 
@@ -66,9 +66,10 @@ $moterom = fetchRows(
             <?php if ($moterom): ?>
                 <table>
                     <?php foreach ($moterom as $m): ?>
+                        <?php $ledig = strtolower($m['Tilgjengelighet']) === 'available'; ?>
                         <tr>
                             <td>Room <?= (int) $m['MoteromId'] ?></td>
-                            <td style="text-align:right;">
+                            <td>
                                 <span class="badge <?= statusClass($m['Tilgjengelighet']) ?>">
                                     <?= htmlspecialchars($m['Tilgjengelighet'] ?: 'Unknown') ?>
                                 </span>

@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'config.php'; // må endre til det som faktisk kobler til databasen
+require 'config.php'; 
 
 $error = "";
 $success_message = "";

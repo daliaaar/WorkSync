@@ -52,6 +52,17 @@ CREATE TABLE MEETINGROOM (
     Tilgjengelighet VARCHAR(255)
 );
 
+-- Opprett Booking-tabellen
+CREATE TABLE BOOKING (
+    BookingId   INT AUTO_INCREMENT PRIMARY KEY,
+    MoteromId   INT NOT NULL,
+    AnsattEpost VARCHAR(255) NOT NULL,
+    Dato        DATE NOT NULL,
+    Starttid    TIME NOT NULL,
+    Sluttid     TIME NOT NULL,
+    FOREIGN KEY (MoteromId) REFERENCES MEETINGROOM(MoteromId)
+);
+
 -- 6. Opprett Oppgaver-tabellen
 CREATE TABLE TASKS (
     OppgaveId INT AUTO_INCREMENT PRIMARY KEY,

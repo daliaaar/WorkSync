@@ -1,23 +1,27 @@
 <?php
 /* WorkSync – Reports
-   Viser oppgaver og innmeldte avvik, og lar brukere legge til nye.
-   - Alle innloggede kan melde avvik (DEVIATION).
-   - Manager og admin kan i tillegg delegere oppgaver (TASKS).
-   - Ansatte ser bare sine egne rader. */
+   Viser oppgaver og innmeldte avvik. Ansatte ser bare sine egne. */
 
-ob_start(); 
+ob_start();
 
 $pageTitle  = "Reports";
 $activePage = "reports";
 require __DIR__ . '/header.php';
 
-/** Formaterer en dato til f.eks. "5 Oct 2026", eller en strek hvis tom. */
 function visDato($dato)
 {
     return $dato ? date('j M Y', strtotime($dato)) : '–';
 }
 
-/** Verdi som skal fylles tilbake i skjemaet etter en feil (kun for riktig skjema). */
+function gyldigDato($dato)
+{
+    if ($dato === '') {
+        return true;
+    }
+    $d = DateTime::createFromFormat('Y-m-d', $dato);
+    return $d && $d->format('Y-m-d') === $dato;
+}
+
 function gammelVerdi($skjemaType, $verdi)
 {
     global $formType;
@@ -28,9 +32,19 @@ if (empty($_SESSION['csrf'])) {
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
 }
 
+$isEmployee  = ($role === 'employee');
 $canDelegate = in_array($role, ['admin', 'manager'], true);
-$showForm    = (($_GET['action'] ?? '') === 'new');
 $saved       = $_GET['saved'] ?? '';
+
+$showForm = (($_GET['action'] ?? '') === 'new');
+$editTask = $canDelegate ? (int) ($_GET['edit_task'] ?? 0) : 0;
+$editDev  = (int) ($_GET['edit_dev'] ?? 0);
+if ($editTask > 0) {
+    $editDev = 0;
+}
+if ($editTask > 0 || $editDev > 0) {
+    $showForm = true;
+}
 
 $error       = "";
 $formType    = "";
@@ -38,77 +52,127 @@ $beskrivelse = "";
 $frist       = "";
 $valgtAnsatt = "";
 
-/* --- LAGRE NYTT AVVIK ELLER NY OPPGAVE ------------------------------ */
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $showForm    = true;
     $formType    = $_POST['type'] ?? '';
+    $handling    = $_POST['handling'] ?? 'save';
+    $id          = (int) ($_POST['id'] ?? 0);
     $beskrivelse = trim($_POST['beskrivelse'] ?? '');
     $frist       = trim($_POST['frist'] ?? '');
     $valgtAnsatt = $_POST['ansatt'] ?? '';
-
-    /* Gyldig dato (YYYY-MM-DD) eller tom */
-    $fristOk = true;
-    if ($frist !== '') {
-        $d = DateTime::createFromFormat('Y-m-d', $frist);
-        $fristOk = $d && $d->format('Y-m-d') === $frist;
-    }
+    $mine        = (int) $userId;
 
     if (!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
         $error = "Invalid form submission. Please try again.";
     } elseif (!in_array($formType, ['task', 'deviation'], true)) {
         $error = "Unknown report type";
     } elseif ($formType === 'task' && !$canDelegate) {
-        $error = "You do not have permission to delegate tasks";
-    } elseif ($beskrivelse === '') {
-        $error = "Description is required";
-    } elseif (strlen($beskrivelse) > 255) {
-        $error = "Description can be at most 255 characters";
-    } elseif (!$fristOk) {
-        $error = "Invalid due date";
+        $error = "You do not have permission to manage tasks";
     } elseif (!$conn) {
         $error = "Database connection is not available";
-    } else {
-        $fristDb    = $frist !== '' ? $frist : null;
-        $bedriftsId = ($role === 'manager') ? (int) $userId : null;
-
-        if ($formType === 'deviation') {
-            /* Ansatte melder på seg selv. Manager/admin har ingen AnsattId. */
-            $tabell   = 'DEVIATION';
-            $ansattId = ($role === 'employee') ? (int) $userId : null;
-        } else {
-            $tabell   = 'TASKS';
-            $ansattId = ctype_digit((string) $valgtAnsatt) ? (int) $valgtAnsatt : null;
-        }
-
+    } elseif ($handling === 'delete') {
         try {
-            /* $tabell er satt ovenfor til en fast verdi, aldri fra brukeren */
-            $stmt = $conn->prepare(
-                "INSERT INTO $tabell (Beskrivelse, Frist, BedriftsId, AnsattId)
-                 VALUES (?, ?, ?, ?)"
-            );
-            $stmt->bind_param("ssii", $beskrivelse, $fristDb, $bedriftsId, $ansattId);
+            if ($formType === 'task') {
+                $stmt = $conn->prepare("DELETE FROM TASKS WHERE OppgaveId = ?");
+                $stmt->bind_param("i", $id);
+            } elseif ($isEmployee) {
+                $stmt = $conn->prepare("DELETE FROM DEVIATION WHERE OppgaveId = ? AND AnsattId = ?");
+                $stmt->bind_param("ii", $id, $mine);
+            } else {
+                $stmt = $conn->prepare("DELETE FROM DEVIATION WHERE OppgaveId = ?");
+                $stmt->bind_param("i", $id);
+            }
             $stmt->execute();
             $stmt->close();
 
-            header("Location: reports.php?saved=" . $formType);
+            header("Location: reports.php?saved=deleted");
             exit();
-
         } catch (mysqli_sql_exception $e) {
-            error_log('Reports insert: ' . $e->getMessage());
-            $error = "Could not save. Please try again later.";
+            error_log('Reports delete: ' . $e->getMessage());
+            $error = "Could not delete. Please try again later.";
         }
+    } else {
+        $showForm = true;
+        if ($id > 0) {
+            if ($formType === 'task') {
+                $editTask = $id;
+            } else {
+                $editDev = $id;
+            }
+        }
+
+        if ($beskrivelse === '') {
+            $error = "Description is required";
+        } elseif (strlen($beskrivelse) > 255) {
+            $error = "Description can be at most 255 characters";
+        } elseif (!gyldigDato($frist)) {
+            $error = "Invalid due date";
+        } else {
+            $fristDb    = $frist !== '' ? $frist : null;
+            $bedriftsId = ($role === 'manager') ? $mine : null;
+            $ansattTask = ctype_digit((string) $valgtAnsatt) ? (int) $valgtAnsatt : null;
+            $ansattDev  = $isEmployee ? $mine : null;
+
+            try {
+                if ($id > 0 && $formType === 'task') {
+                    $stmt = $conn->prepare("UPDATE TASKS SET Beskrivelse = ?, Frist = ?, AnsattId = ? WHERE OppgaveId = ?");
+                    $stmt->bind_param("ssii", $beskrivelse, $fristDb, $ansattTask, $id);
+                } elseif ($id > 0 && $isEmployee) {
+                    $stmt = $conn->prepare("UPDATE DEVIATION SET Beskrivelse = ?, Frist = ? WHERE OppgaveId = ? AND AnsattId = ?");
+                    $stmt->bind_param("ssii", $beskrivelse, $fristDb, $id, $mine);
+                } elseif ($id > 0) {
+                    $stmt = $conn->prepare("UPDATE DEVIATION SET Beskrivelse = ?, Frist = ? WHERE OppgaveId = ?");
+                    $stmt->bind_param("ssi", $beskrivelse, $fristDb, $id);
+                } elseif ($formType === 'task') {
+                    $stmt = $conn->prepare("INSERT INTO TASKS (Beskrivelse, Frist, BedriftsId, AnsattId) VALUES (?, ?, ?, ?)");
+                    $stmt->bind_param("ssii", $beskrivelse, $fristDb, $bedriftsId, $ansattTask);
+                } else {
+                    $stmt = $conn->prepare("INSERT INTO DEVIATION (Beskrivelse, Frist, BedriftsId, AnsattId) VALUES (?, ?, ?, ?)");
+                    $stmt->bind_param("ssii", $beskrivelse, $fristDb, $bedriftsId, $ansattDev);
+                }
+                $stmt->execute();
+                $stmt->close();
+
+                header("Location: reports.php?saved=" . $formType . ($id > 0 ? '_updated' : ''));
+                exit();
+            } catch (mysqli_sql_exception $e) {
+                error_log('Reports save: ' . $e->getMessage());
+                $error = "Could not save. Please try again later.";
+            }
+        }
+    }
+
+} elseif ($editTask > 0 || $editDev > 0) {
+
+    if ($editTask > 0) {
+        $formType = 'task';
+        $rad = fetchRows($conn, "SELECT Beskrivelse, Frist, AnsattId FROM TASKS WHERE OppgaveId = ?", 'i', [$editTask]);
+    } else {
+        $formType = 'deviation';
+        $rad = $isEmployee
+            ? fetchRows($conn, "SELECT Beskrivelse, Frist, AnsattId FROM DEVIATION WHERE OppgaveId = ? AND AnsattId = ?", 'ii', [$editDev, $userId])
+            : fetchRows($conn, "SELECT Beskrivelse, Frist, AnsattId FROM DEVIATION WHERE OppgaveId = ?", 'i', [$editDev]);
+    }
+
+    if ($rad) {
+        $beskrivelse = $rad[0]['Beskrivelse'] ?? '';
+        $frist       = $rad[0]['Frist'] ?? '';
+        $valgtAnsatt = $rad[0]['AnsattId'] ?? '';
+    } else {
+        $error    = "Report not found";
+        $showForm = false;
+        $editTask = 0;
+        $editDev  = 0;
+        $formType = '';
     }
 }
 
-/* Ansatte ser bare sine egne rader. Alle andre ser alt. */
 $filterOppgaver = '';
 $filterAvvik    = '';
 $types          = '';
 $params         = [];
 
-if ($role === 'employee') {
+if ($isEmployee) {
     $filterOppgaver = 'WHERE t.AnsattId = ?';
     $filterAvvik    = 'WHERE d.AnsattId = ?';
     $types          = 'i';
@@ -137,11 +201,18 @@ $avvik = fetchRows(
     $params
 );
 
-/* Ansatte som kan velges ved delegering */
 $ansatte = [];
 if ($showForm && $canDelegate) {
     $ansatte = fetchRows($conn, "SELECT AnsattId, AnsattEpost FROM EMPLOYEE ORDER BY AnsattEpost");
 }
+
+$meldinger = [
+    'task'              => 'Task saved.',
+    'deviation'         => 'Deviation reported.',
+    'task_updated'      => 'Task updated.',
+    'deviation_updated' => 'Deviation updated.',
+    'deleted'           => 'Deleted.',
+];
 ?>
 
 <div class="dashboard">
@@ -149,77 +220,80 @@ if ($showForm && $canDelegate) {
     <h1 class="page-title">Reports</h1>
     <p class="page-subtitle">Tasks and reported deviations</p>
 
-    <!-- MELDINGER -->
-    <?php if ($saved === 'task'): ?>
-        <div class="msg ok">Task saved.</div>
-    <?php elseif ($saved === 'deviation'): ?>
-        <div class="msg ok">Deviation reported.</div>
+    <?php if (isset($meldinger[$saved])): ?>
+        <div class="msg ok"><?= htmlspecialchars($meldinger[$saved]) ?></div>
     <?php endif; ?>
 
     <?php if ($error !== ''): ?>
         <div class="msg err"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
 
-    <!-- SKJEMAER -->
-    <?php if ($showForm): ?>
-
+    <?php if ($showForm && ($editDev > 0 || $editTask === 0)): ?>
         <div class="panel" id="deviation">
-            <h3>Report deviation</h3>
-            <form method="POST" action="reports.php?action=new" class="report-form">
+            <h3><?= $editDev > 0 ? 'Edit deviation' : 'Report deviation' ?></h3>
+            <form method="POST"
+                  action="reports.php?<?= $editDev > 0 ? 'edit_dev=' . $editDev : 'action=new' ?>"
+                  class="report-form">
                 <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
                 <input type="hidden" name="type" value="deviation">
+                <input type="hidden" name="handling" value="save">
+                <input type="hidden" name="id" value="<?= $editDev ?>">
 
                 <label for="dev_beskrivelse">Description</label>
                 <input type="text" id="dev_beskrivelse" name="beskrivelse" maxlength="255" required
                        value="<?= gammelVerdi('deviation', $beskrivelse) ?>">
 
                 <label for="dev_frist">Due date (optional)</label>
-                <input type="date" id="dev_frist" name="frist"
+                <input type="text" class="datepicker" id="dev_frist" name="frist"
+                       placeholder="Select date" autocomplete="off" title="Format: YYYY-MM-DD"
                        value="<?= gammelVerdi('deviation', $frist) ?>">
 
-                <button type="submit">Report deviation</button>
+                <button type="submit"><?= $editDev > 0 ? 'Save changes' : 'Report deviation' ?></button>
                 <a class="cancel" href="reports.php">Cancel</a>
             </form>
         </div>
-
-        <?php if ($canDelegate): ?>
-            <div class="panel" id="task">
-                <h3>Delegate task</h3>
-                <form method="POST" action="reports.php?action=new" class="report-form">
-                    <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
-                    <input type="hidden" name="type" value="task">
-
-                    <label for="task_beskrivelse">Description</label>
-                    <input type="text" id="task_beskrivelse" name="beskrivelse" maxlength="255" required
-                           value="<?= gammelVerdi('task', $beskrivelse) ?>">
-
-                    <label for="task_ansatt">Assign to</label>
-                    <select id="task_ansatt" name="ansatt">
-                        <option value="">Unassigned</option>
-                        <?php foreach ($ansatte as $a): ?>
-                            <option value="<?= (int) $a['AnsattId'] ?>"
-                                <?= ($formType === 'task' && (string) $a['AnsattId'] === (string) $valgtAnsatt) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($a['AnsattEpost']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <label for="task_frist">Due date (optional)</label>
-                    <input type="date" id="task_frist" name="frist"
-                           value="<?= gammelVerdi('task', $frist) ?>">
-
-                    <button type="submit">Delegate task</button>
-                    <a class="cancel" href="reports.php">Cancel</a>
-                </form>
-            </div>
-        <?php endif; ?>
-
     <?php endif; ?>
 
-    <!-- OPPGAVER -->
+    <?php if ($showForm && $canDelegate && ($editTask > 0 || $editDev === 0)): ?>
+        <div class="panel" id="task">
+            <h3><?= $editTask > 0 ? 'Edit task' : 'Delegate task' ?></h3>
+            <form method="POST"
+                  action="reports.php?<?= $editTask > 0 ? 'edit_task=' . $editTask : 'action=new' ?>"
+                  class="report-form">
+                <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+                <input type="hidden" name="type" value="task">
+                <input type="hidden" name="handling" value="save">
+                <input type="hidden" name="id" value="<?= $editTask ?>">
+
+                <label for="task_beskrivelse">Description</label>
+                <input type="text" id="task_beskrivelse" name="beskrivelse" maxlength="255" required
+                       value="<?= gammelVerdi('task', $beskrivelse) ?>">
+
+                <label for="task_ansatt">Assign to</label>
+                <select id="task_ansatt" name="ansatt">
+                    <option value="">Unassigned</option>
+                    <?php foreach ($ansatte as $a): ?>
+                        <option value="<?= (int) $a['AnsattId'] ?>"
+                            <?= ($formType === 'task' && (string) $a['AnsattId'] === (string) $valgtAnsatt) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($a['AnsattEpost']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+
+                <label for="task_frist">Due date (optional)</label>
+                <input type="text" class="datepicker" id="task_frist" name="frist"
+                       placeholder="Select date" autocomplete="off" title="Format: YYYY-MM-DD"
+                       value="<?= gammelVerdi('task', $frist) ?>">
+
+                <button type="submit"><?= $editTask > 0 ? 'Save changes' : 'Delegate task' ?></button>
+                <a class="cancel" href="reports.php">Cancel</a>
+            </form>
+        </div>
+    <?php endif; ?>
+
     <div class="panel">
         <h3>
-            <?= $role === 'employee' ? 'My tasks' : 'All tasks' ?>
+            <?= $isEmployee ? 'My tasks' : 'All tasks' ?>
             <?php if ($canDelegate): ?>
                 <a href="reports.php?action=new#task">+ Delegate task</a>
             <?php endif; ?>
@@ -231,6 +305,9 @@ if ($showForm && $canDelegate) {
                     <th>Description</th>
                     <th>Assigned to</th>
                     <th>Due date</th>
+                    <?php if ($canDelegate): ?>
+                        <th></th>
+                    <?php endif; ?>
                 </tr>
                 <?php foreach ($oppgaver as $o): ?>
                     <tr>
@@ -241,6 +318,19 @@ if ($showForm && $canDelegate) {
                                 <?= $o['Frist'] ? htmlspecialchars(visDato($o['Frist'])) : 'No due date' ?>
                             </span>
                         </td>
+                        <?php if ($canDelegate): ?>
+                            <td style="white-space:nowrap">
+                                <a class="btn-small" href="reports.php?edit_task=<?= (int) $o['OppgaveId'] ?>">Edit</a>
+                                <form method="POST" action="reports.php" class="inline-form"
+                                      onsubmit="return confirm('Delete this task? This cannot be undone.');">
+                                    <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+                                    <input type="hidden" name="type" value="task">
+                                    <input type="hidden" name="handling" value="delete">
+                                    <input type="hidden" name="id" value="<?= (int) $o['OppgaveId'] ?>">
+                                    <button type="submit" class="btn-small danger">Delete</button>
+                                </form>
+                            </td>
+                        <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
             </table>
@@ -249,7 +339,6 @@ if ($showForm && $canDelegate) {
         <?php endif; ?>
     </div>
 
-    <!-- AVVIK -->
     <div class="panel">
         <h3>
             Deviations
@@ -262,12 +351,24 @@ if ($showForm && $canDelegate) {
                     <th>Description</th>
                     <th>Reported by</th>
                     <th>Due date</th>
+                    <th></th>
                 </tr>
                 <?php foreach ($avvik as $a): ?>
                     <tr>
                         <td><?= htmlspecialchars($a['Beskrivelse'] ?? '') ?></td>
                         <td><?= htmlspecialchars($a['AnsattEpost'] ?? 'Unknown') ?></td>
                         <td><?= htmlspecialchars(visDato($a['Frist'])) ?></td>
+                        <td style="white-space:nowrap">
+                            <a class="btn-small" href="reports.php?edit_dev=<?= (int) $a['OppgaveId'] ?>">Edit</a>
+                            <form method="POST" action="reports.php" class="inline-form"
+                                  onsubmit="return confirm('Delete this deviation? This cannot be undone.');">
+                                <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+                                <input type="hidden" name="type" value="deviation">
+                                <input type="hidden" name="handling" value="delete">
+                                <input type="hidden" name="id" value="<?= (int) $a['OppgaveId'] ?>">
+                                <button type="submit" class="btn-small danger">Delete</button>
+                            </form>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
             </table>
@@ -277,5 +378,20 @@ if ($showForm && $canDelegate) {
     </div>
 
 </div>
+
+<?php if ($showForm): ?>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+    <script>
+        if (window.flatpickr) {
+            flatpickr(".datepicker", {
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "j M Y",
+                allowInput: false
+            });
+        }
+    </script>
+<?php endif; ?>
 
 <?php require __DIR__ . '/footer.php'; ?>
