@@ -27,18 +27,28 @@ if($_SERVER["REQUEST_METHOD"] == "POST")
 <!DOCTYPE html>
 <html lang="en">
     <head>
-            <style>
-        *{
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+
+    :root{
+        --brand: #3b71ca;
+        --brand-dark: #2b4fc4;
+
+    }
+    *{
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family:Arial, Helvetica, sans-serif;
-   
-}
-body{
-     background: linear-gradient(to bottom, 45deg, #42f5bf 50%, #2b4fc4 50%);
+    }
+    body{
+     background: linear-gradient(135deg, #f4f7fc, #dce6f8 100%);
      min-height: 100vh;
-}
+    }
 
 .top-header{
     width: 100%;
@@ -79,45 +89,39 @@ nav a:active {
     color: black;
 }
 
-.form-control-custom{
+.contact-card{
     border: none;
-    border-bottom: 1px solid #ced4da;
-    border-radius: 0;
-    padding-left: 0;
-    padding-right: 0;
-    background-color: transparent;
-}
-
-.form-control-custom:focus {
-    outline: none;
-    box-shadow: none;
-    border-color: #3b71ca;
-}
-
-.form-label-custom{
-    font-size: 0.9 rem;
-    color: #888;
-    margin-bottom: 0.2rem;
-    display: block;
+    box-shadow: 0 20px 50px rgba(43, 79, 196, 0.15);
 }
 
 .bg-custom-dark{
-    background-color: #3b71ca;
+    background-color: var(--brand);
     color: #fff;
+}
+
+
+.contact-link:hover{
+    color: #fff !important;
+}
+
+.form-control:focus{
+    border-color: var(--brand);
+    box-shadow: 0 0 0 0.2rem rgba(59, 113, 202, 0.2);
 }
 
 .btn-custom{
-    background-color: #3b71ca;
+    background-color: var(--brand);
+    border-color: var(--brand);
     color: #fff;
-    border-radius: 0;
+}
 
+.btn-custom:hover,
+.btn-custom:focus{
+    background-color: var(--brand-dark);
+    border-color: var(--brand-dark);
+    color: #fff;
 }
 </style>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-        <link rel="stylesheet" href="/CSS/contact.css"/>
 
     </head>
    
@@ -144,47 +148,47 @@ nav a:active {
                 <div class="col-xl-9">
 
                     <div class="text-center mb-5">
-                        <h1 class="fw-bold tracking-tight mb-2" style="font-size: 2.5rem;">Get in touch </h1>
+                        <h1 class="fw-bold mb-2" style="font-size: 2.5rem;">Get in touch </h1>
                         <p class="text-secondary fs-5">Our team is always here to help you.</p>
                     </div>
-                        <div class="card high-end-card rounded-4 overflow-hidden bg-white">
+                        <div class="card contact-card rounded-4 overflow-hidden bg-white">
                             <div class="row g-0">
 
                                 <div class="col-lg-7 p-4 p-md-5">
                                  <form action="contact.php" method="POST">
 
                                 <div class="mb-3">
-                                    <label for="nameInput" class="form-label text-secondary small fw-semibold text-uppercase tracking-wider">Name</label>
-                                    <input type="text" id="nameInput" name="name" class="form-control rounded-3" placeholder="Your name" required>
+                                    <label for="nameInput" class="form-label text-secondary small fw-semibold text-uppercase">Name</label>
+                                    <input type="text" id="nameInput" name="name" class="form-control rounded-3" placeholder="Your name" autocomplete="name" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="emailInput" class="form-label text-secondary small fw-semibold text-uppercase tracking-wider">Email</label>
-                                    <input type="email" id="emailInput" name="email" class="form-control rounded-3" placeholder="Your email" required>
+                                    <label for="emailInput" class="form-label text-secondary small fw-semibold text-uppercase">Email</label>
+                                    <input type="email" id="emailInput" name="email" class="form-control rounded-3" placeholder="Your email" autocomplete="email" required>
                                 </div>
                             
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
-                                    <label for="phoneInput" class="form-label text-secondary small fw-semibold text-uppercase tracking-wider">Phone</label>
-                                    <input type="text" id="phoneInput" name="phone" class="form-control rounded-3" placeholder="Phone number" required>
+                                    <label for="phoneInput" class="form-label text-secondary small fw-semibold text-uppercase">Phone</label>
+                                    <input type="tel" id="phoneInput" name="phone" class="form-control rounded-3" placeholder="Phone number" autocomplete="tel" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="companyInput" class="form-label text-secondary small fw-semibold text-uppercase tracking-wider">Company</label>
-                                    <input type="text" id="companyInput" name="company" class="form-control rounded-3" placeholder="Company name" required>
+                                    <label for="companyInput" class="form-label text-secondary small fw-semibold text-uppercase">Company</label>
+                                    <input type="text" id="companyInput" name="company" class="form-control rounded-3" placeholder="Company name" autocomplete="organization" required>
                                 </div>
                             </div>
 
                             <div class="mb-4">
-                                <label for="messageInput" class="form-label text-secondary small fw-semibold text-uppercase tracking-wider">Message</label>
+                                <label for="messageInput" class="form-label text-secondary small fw-semibold text-uppercase">Message</label>
                                 <textarea name="message" id="messageInput" class="form-control rounded-3" placeholder="Tell us what we can help you with..." rows="4" required></textarea>
                             </div>
-                            <button type="submit" class="btn btn-dark w-100 py-3 rounded-3 fw-semibold text-white" style="background-color:#3b71ca; color: white;">Send Message</button>
+                            <button type="submit" class="btn btn-custom w-100 py-3 rounded-3 fw-semibold">Send Message</button>
                         </form>
                     </div>
 
                     <div class="col-lg-5 p-4 p-md-5 bg-custom-dark text-white d-flex flex-column justify-content-between">
                         <div>
                             <h4 class="fw-bold mb-3">Contact Information</h4>
-                            <p class="text-white-50 mb-5 fs-6 " style="line-height: 1.6;;">Feel free to reach out to us using the contact information below or send us a message. We are here to assist you.</p>
+                            <p class="text-white-50 mb-5 fs-6 " style="line-height: 1.6;">Feel free to reach out to us using the contact information below or send us a message. We are here to assist you.</p>
                             <ul class="list-unstyled d-flex flex-column gap-4">
                                 <li class="d-flex align-items-center">
                                     <div class="bg-secondary bg-opacity-25 p-2 rounded-3 me-3 text-white">
@@ -196,13 +200,13 @@ nav a:active {
                                     <div class="bg-secondary bg-opacity-25 p-2 rounded-3 me-3 text-white">
                                         <i class="bi bi-telephone"></i>
                                     </div>
-                                    <a href="tel:+4712345678" class="text-white-50 fs-6 text-decoration-none hover-white">+47 123 45 678</a>
+                                    <a href="tel:+4712345678" class="contact-link text-white-50 fs-6 text-decoration-none">+47 123 45 678</a>
                                 </li>
                                 <li class="d-flex align-items-center">
                                     <div class="bg-secondary bg-opacity-25 p-2 rounded-3 me-3 text-white">
                                         <i class="bi bi-envelope"></i>
                                     </div>
-                                    <a href="mailto:WorkSync@gmail.com" class="text-white-50 fs-6 text-decoration-none hover-white">WorkSync@gmail.com</a>
+                                    <a href="mailto:WorkSync@gmail.com" class="contact-link text-white-50 fs-6 text-decoration-none">WorkSync@gmail.com</a>
                                 </li>
                             </ul>
                         </div>  
@@ -210,11 +214,11 @@ nav a:active {
                             <p class="text-white-50 small mb-0"><i class="bi bi-shield-check me-1"></i>We respect your privacy and will not share your information</p>                    
                     </div>
                 </div>
-
             </div>
         </div>
         </div>
+    </div>
     </main>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html> 

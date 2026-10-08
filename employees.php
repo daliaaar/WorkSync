@@ -6,24 +6,56 @@ $pageTitle  = "Employees";
 $activePage = "employees";
 require 'header.php';
 
-$ansatte = fetchRows(
+$alleAnsatte = fetchRows(
     $conn,
     "SELECT e.AnsattId, e.AnsattEpost, e.AnsattTelefonnr, e.Tilgjengelighet, e.KontorId
        FROM EMPLOYEE e
       ORDER BY e.AnsattId ASC"
 );
+
+$statuser = [];
+foreach($alleAnsatte as $ansatt){
+    $statuser[] = $a['Tilgjengelighet'] ?: 'Unknown';
+}
+$statuser = array_values(array_unique($statuser));
+sort($statuser);
+
+$valgt = $_GET['status'] ?? '';
+if(!in_array($valgt, $statuser, true)){
+    $valgt = '';
+}
+
+$ansatte = $valgt === ''
+    ? $alleAnsatte : array_filter($alleAnsatte, function($a) use ($valgt){
+        return($a['Tilgjengelighet'] ?: 'Unknown') === $valgt;
+    });
 ?>
 
 <div class="dashboard">
 
     <h1 class="page-title">Employees</h1>
-    <p class="page-subtitle"><?= count($ansatte) ?> employees registered</p>
-
+    <p class="page-subtitle">
+        <?= count($ansatte) ?> of <?= count($alleAnsatte) ?> employees
+        <?= $valgt !== '' ? 'with status "' . htmlspecialchars($valgt) . '"' : 'registered' ?>
+    </p>
+    <form method="get" style="margin-bottom: 1rem;">
+        <label for="status">Filter by availability:</label>
+        <select name="status" id="status" onchange="this.form.submit()">
+            <option value="<?= htmlspecialchars($s) ?>"<?= $s === $valgt ? 'selected' : ''?>>
+                <?= htmlspecialchars($s)?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+    <noscript><button type="submit">Filter</button></noscript>
+    <?php if ($valgt !== ''): ?>
+        <a href="?">Clear</a>
+        <?php endif; ?>
+    </form>
     <div class="panel">
         <h3>
             All employees
             <?php if ($role !== 'employee'): ?>
-                <a href="employees.php?action=new">+ Add employee</a>
+                <a href="add_employees.php?action=new">+ Add employee</a>
             <?php endif; ?>
         </h3>
 

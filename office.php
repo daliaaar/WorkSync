@@ -9,7 +9,7 @@ $kontorer = fetchRows(
     $conn,
     "SELECT o.KontorId, e.AnsattEpost
        FROM OFFICE o
-       LEFT JOIN EMPLOYEE e ON e.AnsattId = o.AnsattId
+       LEFT JOIN EMPLOYEE e ON e.KontorId = o.KontorId
       ORDER BY o.KontorId ASC"
 );
 
@@ -19,6 +19,20 @@ $moterom = fetchRows(
        FROM MEETINGROOM
       ORDER BY MoteromId ASC"
 );
+
+$dagensBookinger = fetchRows(
+    $conn,
+    "SELECT MoteromId, Starttid, Sluttid
+    FROM BOOKING
+    WHERE Dato = '" . date('Y-m-d') . "'
+    ORDER BY Starttid ASC"
+);
+
+$bookingerPerRom = [];
+foreach($dagensBookinger as $booking){
+    $bookingerPerRom[(int) $booking['MoteromId']][] = $booking;
+}
+$naaTidspunkt = date('H:i:s');
 ?>
 
 <div class="dashboard">
@@ -32,7 +46,7 @@ $moterom = fetchRows(
             <h3>
                 Offices
                 <?php if ($role !== 'employee'): ?>
-                    <a href="createOffice.php?action=new">+ Create office</a>
+                    <a href="add_offices.php?action=new">+ Create office</a>
                 <?php endif; ?>
             </h3>
 
@@ -61,37 +75,49 @@ $moterom = fetchRows(
         </div>
 
         <div class="panel">
-            <h3>Meeting rooms</h3>
+            <h3>Meeting rooms (today)</h3>
 
             <?php if ($moterom): ?>
                 <table>
                     <?php foreach ($moterom as $m): ?>
-                        <?php $ledig = strtolower($m['Tilgjengelighet']) === 'available'; ?>
+                        <?php
+                            $romId = (int) $m['MoteromId'];
+                            $bookinger = $bookingerPerRom[$romId] ?? [];
+                            $opptattNaa = false;
+                            foreach($bookinger as $b){
+                                if($b['Starttid'] <= $naaTidspunkt && $b['Sluttid'] > $naaTidspunkt){
+                                $opptattNaa = true;
+                                break;
+                            }
+                        }
+                        ?>
                         <tr>
-                            <td>Room <?= (int) $m['MoteromId'] ?></td>
+                            <td> Room <?= $romId ?></td>
                             <td>
-                                <span class="badge <?= statusClass($m['Tilgjengelighet']) ?>">
-                                    <?= htmlspecialchars($m['Tilgjengelighet'] ?: 'Unknown') ?>
+                                <span class="badge <?= $opptattNaa ? 'busy' : 'ok' ?>">
+                                    <?= $opptattNaa ? 'Booked now' : 'Available now'?>
                                 </span>
                             </td>
-
-                            <td style="text-align:right;">
-                                <?php if($role === 'employee' && $m['Tilgjengelighet'] === 'Available'): ?>
-                                    <a href="bookingroom.php?id=<?= (int) $m['MoreromId']?>">
-                                        Book room 
-                                    </a>
-                                <?php endif; ?>
+                            <td>
+                            <?php if($bookinger): ?>
+                                <?php foreach($bookinger as $b): ?>
+                                    <?= htmlspecialchars(substr($b['Starttid'], 0, 5)) ?>-<?=htmlspecialchars(substr($b['Sluttid'], 0, 5))?><br>
+                                <?php endforeach;?>
+                            <?php else: ?>
+                                No bookings today
+                            <?php endif;?>
                             </td>
-                        </tr>
+                            <td style="text-align:right;">
+                                <a href="bookingroom.php?room=<?=$romId ?>">Book room </a>
+                            </td>
+                         </tr>
                     <?php endforeach; ?>
                 </table>
             <?php else: ?>
                 <p class="empty">No meeting rooms registered.</p>
             <?php endif; ?>
         </div>
-
     </div>
-
 </div>
 
 <?php require 'footer.php'; ?>
