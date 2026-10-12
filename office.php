@@ -15,7 +15,7 @@ $kontorer = fetchRows(
 
 $moterom = fetchRows(
     $conn,
-    "SELECT MoteromId, Tilgjengelighet
+    "SELECT MoteromId, Navn, Kapasitet
        FROM MEETINGROOM
       ORDER BY MoteromId ASC"
 );
@@ -75,10 +75,22 @@ $naaTidspunkt = date('H:i:s');
         </div>
 
         <div class="panel">
-            <h3>Meeting rooms (today)</h3>
+            <h3>Meeting rooms (today)
+                <?php if($role !== 'employee'): ?>
+                    <a href="add_meetingsrooms.php">+ add meeting room</a>
+                <?php endif;?>
+            </h3>
 
             <?php if ($moterom): ?>
                 <table>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Capacity</th>
+                        <th>Status</th>
+                        <th>Bookings today</th>
+                        <th></th>
+                    </tr>
                     <?php foreach ($moterom as $m): ?>
                         <?php
                             $romId = (int) $m['MoteromId'];
@@ -92,7 +104,9 @@ $naaTidspunkt = date('H:i:s');
                         }
                         ?>
                         <tr>
-                            <td> Room <?= $romId ?></td>
+                            <td><?= $romId ?></td>
+                            <td><?= htmlspecialchars($m['Navn'] ?: '-')?></td>
+                            <td><?= $m['Kapasitet'] ? (int) $m['Kapasitet'] : '-'?></td>
                             <td>
                                 <span class="badge <?= $opptattNaa ? 'busy' : 'ok' ?>">
                                     <?= $opptattNaa ? 'Booked now' : 'Available now'?>

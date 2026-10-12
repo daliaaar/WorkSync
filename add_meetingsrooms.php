@@ -9,10 +9,15 @@ if($role === 'employee') {
     exit;
 }
 
+if (empty($_SESSION['csrf'])) {
+    $_SESSION['csrf'] = bin2hex(random_bytes(32));
+}
+
 $error = "";
 $name = "";
 $capacity = "";
 $saved = isset($_GET['saved']);
+
 
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
     $name = trim($_POST['name'] ?? '');
@@ -55,11 +60,27 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     <?php endif; ?>
 
     <div class="panel">
-        <h3>New meeting room<a href="offices.php">Back to offices</a>
+        <h3>New meeting room<a href="office.php">Back to offices</a>
     </h3>
 
-    <form method="POST" action="add_meetingrooms.php" class="report-form">
-        <input type="hidden" name="csrf" values=<?= 
+    <form method="POST" action="add_meetingsrooms.php" class="report-form">
+        <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf'])?>">
+
+        <label for="name">Room name</label>
+        <input type="text" id="name" name="name" maxlength=100 required 
+                placeholder="Boardroom" value="<?= htmlspecialchars($name)?>">
+
+        <label for="capacity">Capacity (Optional)</label>
+        <input type="number" id="capacity" name="capacity" 
+                placeholder="20" value="<?= htmlspecialchars($capacity)?>">
+
+        <button type="submit">Add meeting room </button>
+        <a class="cancel" href="office.php">Cancel</a>
+
+    </form>
+    </div>
+</div>
+    
 
 
 <?php require __DIR__ . '/footer.php'; ?>
