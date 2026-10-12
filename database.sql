@@ -41,11 +41,24 @@ CREATE TABLE EMPLOYEE (
     FOREIGN KEY (AdminId) REFERENCES COMPANYMANAGER(AdminId),
     FOREIGN KEY (KontorId) REFERENCES OFFICE(KontorId)
 );
+
+-- la til manglende stilling og avdeling slik nevnt i rapporten: 
+ALTER TABLE EMPLOYEE
+  ADD COLUMN Stilling VARCHAR(100) NULL AFTER AnsattTelefonnr,
+  ADD COLUMN Avdeling VARCHAR(100) NULL AFTER Stilling;
+  
 -- Legg til manglende sirkulær referanse på Kontor-tabellen (Kontor har AnsattId som peker på Ansatt)
 ALTER TABLE OFFICE
 ADD CONSTRAINT fk_kontor_ansatt 
 FOREIGN KEY (AnsattId) REFERENCES EMPLOYEE(AnsattId);
 
+-- endring i møretom tabellen siden den skal regne utfra klokkeslett og vise tilgjengelighet
+ALTER TABLE MEETINGROOM DROP COLUMN Tilgjengelighet;
+
+-- legger heller til hvor mange personer som kan sitte i rommet og navn f.eks
+ALTER TABLE MEETINGROOM
+  ADD COLUMN Navn VARCHAR(100) NOT NULL DEFAULT '',
+  ADD COLUMN Kapasitet INT NULL;
 -- 5. Opprett Møterom-tabellen
 CREATE TABLE MEETINGROOM (
     MoteromId INT AUTO_INCREMENT PRIMARY KEY,

@@ -1,12 +1,11 @@
 <?php
-$pageTitle  = "Create Office";
+$pageTitle  = "Add offices";
 $activePage = "createOffice";
 require __DIR__ . '/header.php';
 
 if($role === 'employee') {
     http_response_code(403);
     echo '<div class="dashboard"><p class="badge busy">You do not have permission to access this page</p></div>';
-    require 'footer.php';
     exit;
 }
 
@@ -69,7 +68,7 @@ if($assignEmployee){
             }
         } catch(Exception $e){
             $conn->rollback();
-            $errors[] = "An error occured, please try again later."
+            $errors[] = "An error occured, please try again later.";
         }
     }
 }
@@ -83,11 +82,11 @@ if($assignEmployee){
 
     <div class="panel">
         <h3>Create Office</h3>
-        <?php if ($employeesWithoutOffice): ?>
         <form method="post" action="?action=new">
-            <P>
-                <label>Assign to Employee (optiona)<br>
-                    <select name="employee" required>
+             <?php if ($employeesWithoutOffice): ?>
+            <p>
+                <label>Assign to Employee (optional)<br>
+                    <select name="employee">
                         <option value="">-- Select an employee (leave unassigned)--</option>
                         <?php foreach ($employeesWithoutOffice as $employee): ?>
                             <option value="<?= (int)$employee['AnsattId'] ?>">
@@ -95,19 +94,21 @@ if($assignEmployee){
                         <?php endforeach; ?>
                     </select>
                 </label>
-            </P>
-            <?php if(!$employeesWithoutOffice):?>
-                <p class="empty">All employees have been assigned an office.
-                    <a href="employee.php"> Add new employee</a>
+             </p>
+
+            <?php else: ?>
+                <p class="empty">
+                    All employees have been assigned an office.
+                    <a href="add_employees.php">Add new employee</a>
             </p>
             <?php endif; ?>
             <p>
                 <button type="submit">Create Office</button>
                 <a class="cancel" href="<?= htmlspecialchars($backLink) ?>">Cancel</a>
-            </P>
+            </p>
         </form>
     </div>
 </div>
-<?php require 'footer.php'; ?>
+<?php require __DIR__ . '/footer.php'; ?>
 
 

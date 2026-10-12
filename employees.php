@@ -8,13 +8,13 @@ require 'header.php';
 
 $alleAnsatte = fetchRows(
     $conn,
-    "SELECT e.AnsattId, e.AnsattEpost, e.AnsattTelefonnr, e.Tilgjengelighet, e.KontorId
+    "SELECT e.AnsattId, e.AnsattEpost, e.AnsattTelefonnr, e.Stilling, e.Avdeling, e.Tilgjengelighet, e.KontorId
        FROM EMPLOYEE e
       ORDER BY e.AnsattId ASC"
 );
 
 $statuser = [];
-foreach($alleAnsatte as $ansatt){
+foreach($alleAnsatte as $a){
     $statuser[] = $a['Tilgjengelighet'] ?: 'Unknown';
 }
 $statuser = array_values(array_unique($statuser));
@@ -41,6 +41,7 @@ $ansatte = $valgt === ''
     <form method="get" style="margin-bottom: 1rem;">
         <label for="status">Filter by availability:</label>
         <select name="status" id="status" onchange="this.form.submit()">
+            <?php foreach ($statuser as $s): ?>
             <option value="<?= htmlspecialchars($s) ?>"<?= $s === $valgt ? 'selected' : ''?>>
                 <?= htmlspecialchars($s)?>
             </option>
@@ -65,6 +66,8 @@ $ansatte = $valgt === ''
                     <th>Employee no.</th>
                     <th>Email</th>
                     <th>Phone</th>
+                    <th>Position</th>
+                    <th>Department</th>
                     <th>Office</th>
                     <th>Availability</th>
                 </tr>
@@ -73,6 +76,8 @@ $ansatte = $valgt === ''
                         <td><?= (int) $e['AnsattId'] ?></td>
                         <td><?= htmlspecialchars($e['AnsattEpost'] ?? '') ?></td>
                         <td><?= htmlspecialchars($e['AnsattTelefonnr'] ?: '–') ?></td>
+                        <td><?= htmlspecialchars($e['Stilling'] ?: '-')?></td>
+                        <td><?= htmlspecialchars($e['Avdeling'] ?: '-')?></td>
                         <td><?= $e['KontorId'] ? (int) $e['KontorId'] : '–' ?></td>
                         <td>
                             <span class="badge <?= statusClass($e['Tilgjengelighet']) ?>">

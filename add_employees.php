@@ -18,6 +18,8 @@ if (empty($_SESSION['csrf'])) {
 $error = "";
 $email = "";
 $phone = "";
+$position = "";
+$department = "";
 $saved = isset($_GET['saved']);
 
 /* --- LAGRE NY ANSATT -- */
@@ -26,8 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $email           = trim($_POST['email'] ?? '');
     $phone           = trim($_POST['phone'] ?? '');
+    $position        = trim($_POST['position'] ?? '');
+    $department      = trim($_POST['department'] ?? '');
     $password        = $_POST['password'] ?? '';
     $passwordConfirm = $_POST['confirmPassword'] ?? '';
+
 
     if (!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
         $error = "Invalid form submission. Please try again.";
@@ -37,6 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Invalid email format";
     } elseif ($phone !== '' && !preg_match('/^[0-9+() -]{5,20}$/', $phone)) {
         $error = "Invalid phone number";
+    } elseif (strlen($position) > 100 || strlen($department) > 100){
+        $error = "Position and department must be at most 100 characters";
     } elseif (strlen($password) < $minPassordLengde) {
         $error = "Password must be at least $minPassordLengde characters";
     } elseif ($password !== $passwordConfirm) {
@@ -72,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute();
                 $stmt->close();
 
-                header("Location: add_employee.php?saved=1");
+                header("Location: add_employees.php?saved=1");
                 exit();
             }
         } catch (mysqli_sql_exception $e) {
@@ -102,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="employees.php">Back to employees</a>
         </h3>
 
-        <form method="POST" action="add_employee.php" class="report-form">
+        <form method="POST" action="add_employees.php" class="report-form">
             <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
 
             <label for="email">Email</label>
@@ -114,6 +121,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="tel" id="phone" name="phone" maxlength="20"
                    placeholder="+47 123 45 678"
                    value="<?= htmlspecialchars($phone) ?>">
+
+            <label for="position">Position </label>
+            <input type="text" id="position" name="position" maxlength="100"
+                    placeholder="Developer"
+                    value="<?= htmlspecialchars($position) ?>">
+            
+            <label for="department">Department</label>
+            <input type="text" id="department" name="department" maxlength="100"
+                    placeholder="IT"
+                    value="<?= htmlspecialchars($department) ?>">
 
             <label for="password">Password</label>
             <input type="password" id="password" name="password" required

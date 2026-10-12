@@ -11,14 +11,12 @@ $antallMoterom  = countRows($conn, "SELECT COUNT(*) FROM MEETINGROOM");
 $ledigeMoterom  = countRows($conn, "SELECT COUNT(*) FROM MEETINGROOM WHERE Tilgjengelighet = 'Available'");
 
 if ($role === 'employee') {
-    /* Ansatt ser bare sine egne oppgaver og avvik */
-    $apneOppgaver = countRows($conn, "SELECT COUNT(*) FROM TASKS WHERE AnsattId = ?", 'i', [$userId]);
-    $forfalt      = countRows($conn, "SELECT COUNT(*) FROM TASKS WHERE AnsattId = ? AND Frist < CURDATE()", 'i', [$userId]);
+    $apneOppgaver = countRows($conn, "SELECT COUNT(*) FROM TASKS WHERE AnsattId = ? AND Status <> 'Done'", 'i', [$userId]);
+    $forfalt      = countRows($conn, "SELECT COUNT(*) FROM TASKS WHERE AnsattId = ? AND Status <> 'Done' AND Frist < CURDATE()", 'i', [$userId]);
     $antallAvvik  = countRows($conn, "SELECT COUNT(*) FROM DEVIATION WHERE AnsattId = ?", 'i', [$userId]);
 } else {
-    /* Manager og admin ser hele bedriften */
-    $apneOppgaver = countRows($conn, "SELECT COUNT(*) FROM TASKS");
-    $forfalt      = countRows($conn, "SELECT COUNT(*) FROM TASKS WHERE Frist < CURDATE()");
+    $apneOppgaver = countRows($conn, "SELECT COUNT(*) FROM TASKS WHERE Status <> 'Done'");
+    $forfalt      = countRows($conn, "SELECT COUNT(*) FROM TASKS WHERE Status <> 'Done' AND Frist < CURDATE()");
     $antallAvvik  = countRows($conn, "SELECT COUNT(*) FROM DEVIATION");
 }
 

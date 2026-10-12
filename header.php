@@ -34,6 +34,11 @@ $role     = $_SESSION['role']     ?? 'employee';
 $userId   = $_SESSION['userId']   ?? 0;
 $userName = $_SESSION['userName'] ?? 'Unknown user';
 
+if (isset($allowedRoles) && !in_array($role, $allowedRoles, true)){
+    http_response_code(403);
+    exit('You do not have access to this page');
+}
+
 /* Pen visning av rolle i toppmenyen */
 $roleLabels = [
     'admin'    => 'Administrator',

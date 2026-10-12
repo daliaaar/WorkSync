@@ -21,14 +21,16 @@ $slutt = $_POST['slutt'] ?? '';
 if($_SERVER['REQUEST_METHOD'] === 'POST') {
     $romFinnes = false;
     foreach ($moterom as $m) {
-        if ((int) $m['MoteromId'] === $choosenRoom)  $romFinnes = true; break; 
+        if ((int) $m['MoteromId'] === $choosenRoom)  {
+            $romFinnes = true; break; 
+        }
     }
     if (!$romFinnes){
             $error[] = "Choose a valid meeting room";
     }
 
     $d = DateTime::createFromFormat('Y-m-d', $dato);
-    if(!$d || !$d->format('Y-m-d') !== $dato) {
+    if(!$d || $d->format('Y-m-d') !== $dato) {
         $error[] = "Invalid date";
     } elseif ($dato < date('Y-m-d')) {
         $error[] = "You cannot book a room for a past date";
@@ -45,10 +47,10 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     if(!$error){
         $conn->begin_transaction();
         try{
-            $lås = $conn->prepare("SELECT MoteromId FROM MEETINGROOM WHERE MoteromId = ? FOR UPDATE");
-            $lås->bind_param("i", $choosenRoom);
-            $lås->execute();
-            $lås->get_result();
+            $romlaas = $conn->prepare("SELECT MoteromId FROM MEETINGROOM WHERE MoteromId = ? FOR UPDATE");
+            $romlaas->bind_param("i", $choosenRoom);
+            $romlaas->execute();
+            $romlaas->get_result();
 
             $check = $conn->prepare("SELECT COUNT(*) AS amount FROM BOOKING WHERE MoteromId = ? AND Dato = ? AND starttid < ? AND sluttid > ?");
             $check->bind_param("isss", $choosenRoom, $dato, $slutt, $start);
@@ -92,7 +94,7 @@ if ($choosenRoom){
         <p class="badge ok">The room has been successfully booked</p>
     <?php endif; ?>
     <?php foreach($error as $err): ?>
-        <p class="badge budy"><?= htmlspecialchars($err) ?></p>
+        <p class="badge busy"><?= htmlspecialchars($err) ?></p>
     <?php endforeach; ?>
 
     <div class="panel-grid">
@@ -114,7 +116,7 @@ if ($choosenRoom){
                 <p>
                     <label>Date<br>
                         <input type="date" name="dato" required
-                                min = <?= date('Y-m-d') ?>
+                                min="<?= date('Y-m-d') ?>
                                 value="<?= htmlspecialchars($dato) ?>">
                     </label>
                 </p>
@@ -137,11 +139,11 @@ if ($choosenRoom){
         </div>
         <div class="panel">
             <h3>Booked<?= $choosenRoom ? '(Room ' . $choosenRoom . ', ' . htmlspecialchars($dato) . ')' : '' ?></h3>
-            <?php if($choosenRoom): ?>
+            <?php if(!$choosenRoom): ?>
                 <p class="empty">Choose a room to see booked times</p>
             <?php elseif ($opptatt): ?>
                 <table>
-                    <tr><th>From</th><th>To</th><th>Booked by</th><tr>
+                    <tr><th>From</th><th>To</th><th>Booked by</th></tr>
                         <?php foreach ($opptatt as $booking): ?>
                             <tr>
                                 <td><?= htmlspecialchars(substr($booking['starttid'], 0, 5)) ?></td>
