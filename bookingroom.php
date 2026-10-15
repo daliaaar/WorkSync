@@ -17,6 +17,7 @@ $choosenRoom = (int) ($_POST['room'] ?? $_GET['room'] ?? 0);
 $dato = $_POST['dato'] ?? date('Y-m-d');
 $start = $_POST['start'] ?? '';
 $slutt = $_POST['slutt'] ?? '';
+$epost = $_SESSION['epost'] ?? '';
 
 if($_SERVER['REQUEST_METHOD'] === 'POST') {
     $romFinnes = false;
@@ -77,7 +78,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $opptatt = [];
 if ($choosenRoom){
-    $opptattTider = $conn->prepare("SELECT starttid, sluttid FROM BOOKING WHERE MoteromId = ? AND Dato = ? ORDER BY starttid");
+    $opptattTider = $conn->prepare("SELECT starttid, sluttid, AnsattEpost FROM BOOKING WHERE MoteromId = ? AND Dato = ? ORDER BY starttid");
     $opptattTider->bind_param("is", $choosenRoom, $dato);
     $opptattTider->execute();
     $result = $opptattTider->get_result();
@@ -116,7 +117,7 @@ if ($choosenRoom){
                 <p>
                     <label>Date<br>
                         <input type="date" name="dato" required
-                                min="<?= date('Y-m-d') ?>
+                                min="<?= date('Y-m-d') ?>"
                                 value="<?= htmlspecialchars($dato) ?>">
                     </label>
                 </p>
@@ -138,7 +139,7 @@ if ($choosenRoom){
             </form>
         </div>
         <div class="panel">
-            <h3>Booked<?= $choosenRoom ? '(Room ' . $choosenRoom . ', ' . htmlspecialchars($dato) . ')' : '' ?></h3>
+            <h3>Booked<?= $choosenRoom ? ' (Room ' . $choosenRoom . ', ' . htmlspecialchars($dato) . ')' : '' ?></h3>
             <?php if(!$choosenRoom): ?>
                 <p class="empty">Choose a room to see booked times</p>
             <?php elseif ($opptatt): ?>

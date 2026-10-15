@@ -5,6 +5,42 @@ $pageTitle  = "Offices";
 $activePage = "office";
 require 'header.php';
 
+$msg = '';
+if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])){
+    if($role !== 'manager'){
+        http_response_code(403);
+        exit('Not allowed');
+    }
+    $type = $_POST['delete'];
+    $id = (int) ($_POST['id'] ?? 0);
+
+    $conn->begin_transaction();
+    try{
+        if ($type === 'office'){
+            $u = $conn->prepare("UPDATE EMPLOYEE SET KontorId = NULL WHERE KontorId = ?");
+            $u->bind_param("i", $id);
+            $u->execute();
+
+            $d = $conn->prepare("DELETE FROM OFFICE WHERE KontorId = ?");
+            $d->bind_param("i", $id);
+            $d->execute();
+        } elseif ($type === 'room'){
+            $b = $conn->prepare("DELETE FROM BOOKING WHERE MoteromId = ?");
+            $b->bind_param("i", $id);
+            $b->execute();
+
+            $d = $conn->prepare("DELETE FROM MEETINGROOM WHERE MoteromId = ?");
+            $d->bind_param("i", $id);
+            $d->execute();
+        }
+        $conn->commit();
+        $msg = 'Deleted';
+    } catch (Exception $e){
+        $conn->rollback();
+        $msg = 'Could not delete';
+    }
+}
+
 $kontorer = fetchRows(
     $conn,
     "SELECT o.KontorId, e.AnsattEpost
@@ -40,8 +76,13 @@ $naaTidspunkt = date('H:i:s');
     <h1 class="page-title">Offices</h1>
     <p class="page-subtitle">Offices and meeting rooms in the company</p>
 
+    <?php if($msg): ?>
+        <p class="badge ok"><?= htmlspecialchars($msg) ?></p>
+    <?php endif; ?>
+
     <div class="panel-grid">
 
+    <!-- OFFICES -->
         <div class="panel">
             <h3>
                 Offices
@@ -65,6 +106,14 @@ $naaTidspunkt = date('H:i:s');
                                 <span class="badge <?= $k['AnsattEpost'] ? 'busy' : 'ok' ?>">
                                     <?= $k['AnsattEpost'] ? 'Occupied' : 'Available' ?>
                                 </span>
+                                <?php if($role === 'manager'): ?>
+                                    <form method="post" style="display:inline;"
+                                        onsubmit="return confirm('Delete office <?= (int) $k['KontorId'] ?>?');">
+                                        <input type="hidden" name="delete" value="office">
+                                        <input type="hidden" name="id" value="<?= (int) $k['KontorId'] ?>">
+                                        <button type="submit">Delete</button>
+                                </form>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -122,7 +171,16 @@ $naaTidspunkt = date('H:i:s');
                             <?php endif;?>
                             </td>
                             <td style="text-align:right;">
-                                <a href="bookingroom.php?room=<?=$romId ?>">Book room </a>
+                                <a href="bookingroom.php?room=<?=$romId ?>">Book room</a>
+                                
+                                <?php if ($role === 'manager'): ?>
+                                    <form method="post" style="display:inline;"
+                                        onsubmit="return confirm('Delete room <?= $romId ?> and all its bookings?');">
+                                        <input type="hidden" name="delete" value="room">
+                                        <input type="hidden" name="id" value="<?= $romId ?>">
+                                        <button type="submit">Delete</button>
+                                    </form>
+                                <?php endif; ?>
                             </td>
                          </tr>
                     <?php endforeach; ?>

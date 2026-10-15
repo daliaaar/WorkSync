@@ -4,11 +4,41 @@
 $pageTitle  = "Settings";
 $activePage = "settings";
 require 'header.php';
-?>
 
+$tillatteStatuser = ['Available', 'Busy', 'Do not disturb', 'Away', 'Offline'];
+$epost = $_SESSION['email'] ?? '';
+$melding = '';
+
+if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['availability'])){
+    $nyStatus = $_POST['availability'];
+
+    if($epost === ''){
+        $melding = 'You must be logged in';
+    } elseif (!in_array($nyStatus, $tillatteStatuser, true)){
+        $melding = 'Invalid availability';
+    } else {
+        $lagreStatus = $conn->prepare("UPDATE EMPLOYEE SET Tilgjengelighet = ? WHERE AnsattEpost = ?");
+        $lagreStatus->bind_param("ss", $nyStatus, $epost);
+        $lagreStatus->execute();
+        $melding = 'Settings saved';
+    }
+}
+
+$gjeldendeStatus = 'Available';
+$hentStatus = $conn->prepare("SELECT Tilgjengelighet FROM EMPLOYEE WHERE AnsattEpost = ?");
+$hentStatus->bind_param("s", $epost);
+$hentStatus->execute();
+$rad = $hentStatus->get_result()->fetch_assoc();
+if($rad && $rad['Tilgjengelighet']){
+    $gjeldendeStatus = $rad['Tilgjengelighet'];
+}
+?>
 <!-- SETTINGS CONTENT -->
 <div class="settings-container">
     <h2 class="settings-title">System &amp; Profile Settings</h2>
+    <?php if ($melding): ?>
+        <p class="badge ok"><?= htmlspecialchars($melding) ?></p>
+    <?php endif; ?>
 
     <form action="settings.php" method="POST">
 
@@ -23,11 +53,12 @@ require 'header.php';
             <div class="form-group">
                 <label for="availability">Availability</label>
                 <select id="availability" name="availability">
-                    <option>Available</option>
-                    <option>Busy</option>
-                    <option>Do not disturb</option>
-                    <option>Away</option>
-                    <option>Offline</option>
+                    <?php foreach($tillatteStatuser as $status): ?>
+                        <option value="<?= htmlspecialchars($status) ?>"
+                            <?= $gjeldendeStatus === $status ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($status) ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
         </div>
@@ -69,4 +100,3 @@ require 'header.php';
 </div>
 
 <?php require 'footer.php'; ?>
-s
