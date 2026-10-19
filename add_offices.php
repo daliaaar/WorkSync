@@ -2,6 +2,7 @@
 $pageTitle  = "Add offices";
 $activePage = "createOffice";
 require __DIR__ . '/header.php';
+date_default_timezone_set('Europe/Oslo');
 
 if($role === 'employee') {
     http_response_code(403);

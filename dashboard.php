@@ -225,7 +225,7 @@ $ansatte = fetchRows(
                     <a href="employees.php?action=new">+ Add employee</a>
                     <a href="equipment.php?action=new">+ Register equipment</a>
                     <a href="office.php?action=new">+ Create office</a>
-                    <a href="manager_dashboard.php">Delegate task</a>
+                    <a href="reports.php">Delegate task</a>
                 <?php else: ?>
                     <a href="office.php">Book meeting room</a>
                     <a href="equipment.php">Reserve equipment</a>

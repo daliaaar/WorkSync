@@ -2,24 +2,44 @@
 $pageTitle  = "Book a meeting room";
 $activePage = "bookingroom";
 require __DIR__ . '/header.php';
+date_default_timezone_set('Europe/Oslo');
 
 $error = [];
 $ok = false;
 
 $moterom = [];
+$cancelOk = false;
+$epost = $_SESSION['email'] ?? '';
 
 $res = $conn->query("SELECT MoteromId FROM MEETINGROOM ORDER BY MoteromId");
 while($row = $res->fetch_assoc()) {
     $moterom[] = $row;
 }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel'])){
+    $bookingId = (int) ($_POST['booking_id'] ?? 0);
+
+    if($epost === ''){
+        $error[] = "You must be logged in to cancel a booking";
+    } else {
+        $cancel  = $conn->prepare("DELETE FROM BOOKING WHERE BookingId = ? AND AnsattEpost = ?");
+        $cancel->bind_param("is", $bookingId, $epost);
+        $cancel->execute();
+
+        if($cancel->affected_rows > 0){
+            $cancelOk = true;
+        } else {
+            $error[] = "Could not cancel the booking";
+        }
+    }
+}
 
 $choosenRoom = (int) ($_POST['room'] ?? $_GET['room'] ?? 0);
-$dato = $_POST['dato'] ?? date('Y-m-d');
+$dato = $_POST['dato'] ?? $_GET['dato'] ?? date('Y-m-d');
 $start = $_POST['start'] ?? '';
 $slutt = $_POST['slutt'] ?? '';
-$epost = $_SESSION['epost'] ?? '';
 
-if($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+if($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['cancel'])) {
     $romFinnes = false;
     foreach ($moterom as $m) {
         if ((int) $m['MoteromId'] === $choosenRoom)  {
@@ -53,7 +73,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             $romlaas->execute();
             $romlaas->get_result();
 
-            $check = $conn->prepare("SELECT COUNT(*) AS amount FROM BOOKING WHERE MoteromId = ? AND Dato = ? AND starttid < ? AND sluttid > ?");
+            $check = $conn->prepare("SELECT COUNT(*) AS amount FROM BOOKING WHERE MoteromId = ? AND Dato = ? AND Starttid < ? AND Sluttid > ?");
             $check->bind_param("isss", $choosenRoom, $dato, $slutt, $start);
             $check->execute();
             $amount  = (int) $check->get_result()->fetch_assoc()['amount'];
@@ -62,7 +82,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $conn->rollback();
                 $error[] = "The room is already booked for the selected time";
             } else {
-                $ins = $conn->prepare("INSERT INTO BOOKING (MoteromId, Dato, starttid, sluttid, AnsattEpost) VALUES (?, ?, ?, ?, ?)");
+                $ins = $conn->prepare("INSERT INTO BOOKING (MoteromId, Dato, Starttid, Sluttid, AnsattEpost) VALUES (?, ?, ?, ?, ?)");
                 $ins->bind_param("issss", $choosenRoom, $dato, $start, $slutt, $epost);
                 $ins->execute();
                 $conn->commit();
@@ -78,7 +98,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $opptatt = [];
 if ($choosenRoom){
-    $opptattTider = $conn->prepare("SELECT starttid, sluttid, AnsattEpost FROM BOOKING WHERE MoteromId = ? AND Dato = ? ORDER BY starttid");
+    $opptattTider = $conn->prepare("SELECT BookingId, Starttid, Sluttid, AnsattEpost FROM BOOKING WHERE MoteromId = ? AND Dato = ? ORDER BY Starttid");
     $opptattTider->bind_param("is", $choosenRoom, $dato);
     $opptattTider->execute();
     $result = $opptattTider->get_result();
@@ -94,6 +114,10 @@ if ($choosenRoom){
     <?php if($ok): ?>
         <p class="badge ok">The room has been successfully booked</p>
     <?php endif; ?>
+    <?php if($cancelOk): ?>
+        <p class="badge ok">The booking has been cancelled</p>
+    <?php endif; ?>
+
     <?php foreach($error as $err): ?>
         <p class="badge busy"><?= htmlspecialchars($err) ?></p>
     <?php endforeach; ?>
@@ -140,17 +164,39 @@ if ($choosenRoom){
         </div>
         <div class="panel">
             <h3>Booked<?= $choosenRoom ? ' (Room ' . $choosenRoom . ', ' . htmlspecialchars($dato) . ')' : '' ?></h3>
+            <?php if($choosenRoom): ?>
+                <form method="get" action="bookingroom.php">
+                    <input type="hidden" name="room" value="<?= $choosenRoom ?>">
+                    <input type="date" name="dato"
+                            min="<?= date('Y-m-d') ?>"
+                            value="<?= htmlspecialchars($dato) ?>"
+                            onchange="this.form.submit()">
+                </form>
+            <?php endif; ?>
+
             <?php if(!$choosenRoom): ?>
                 <p class="empty">Choose a room to see booked times</p>
             <?php elseif ($opptatt): ?>
                 <table>
-                    <tr><th>From</th><th>To</th><th>Booked by</th></tr>
+                    <tr><th>From</th><th>To</th><th>Booked by</th><th></th></tr>
                         <?php foreach ($opptatt as $booking): ?>
                             <tr>
-                                <td><?= htmlspecialchars(substr($booking['starttid'], 0, 5)) ?></td>
-                                <td><?= htmlspecialchars(substr($booking['sluttid'], 0, 5)) ?></td>
+                                <td><?= htmlspecialchars(substr($booking['Starttid'], 0, 5)) ?></td>
+                                <td><?= htmlspecialchars(substr($booking['Sluttid'], 0, 5)) ?></td>
                                 <td><?= htmlspecialchars($booking['AnsattEpost']) ?></td>
-                            </tr>
+                                <td style="text-align:right;">
+                                    <?php if($epost !== '' && $booking['AnsattEpost'] === $epost): ?>
+                                        <form method="post" action="bookingroom.php" style="display:inline;"
+                                              onsubmit="return confirm('Cancel this booking?');">
+                                              <input type="hidden" name="cancel" value="1">
+                                              <input type="hidden" name="booking_id" value="<?= (int) $booking['BookingId'] ?>">
+                                              <input type="hidden" name="room" value="<?= $choosenRoom ?>">
+                                              <input type="hidden" name="dato" value="<?= htmlspecialchars($dato) ?>">
+                                              <button type="submit">Cancel</button>
+                                    </form>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>   
                         <?php endforeach; ?>
                     </table>
                 <?php else: ?>

@@ -162,8 +162,6 @@ $menu = [
     ['key' => 'employees',   'label' => 'Employees',   'url' => 'employees.php'],
     ['key' => 'equipment',   'label' => 'Equipment',   'url' => 'equipment.php'],
     ['key' => 'reports',     'label' => 'Reports',     'url' => 'reports.php'],
-    ['key' => 'maintenance', 'label' => 'Maintenance', 'url' => 'manager_dashboard.php',
-     'roles' => ['admin', 'manager']],
     ['key' => 'settings',    'label' => 'Settings',    'url' => 'settings.php'],
 ];
 ?>

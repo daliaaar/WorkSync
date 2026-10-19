@@ -4,6 +4,7 @@
 $pageTitle  = "Offices";
 $activePage = "office";
 require 'header.php';
+date_default_timezone_set('Europe/Oslo');
 
 $msg = '';
 if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])){
@@ -56,11 +57,20 @@ $moterom = fetchRows(
       ORDER BY MoteromId ASC"
 );
 
+$idag = date('Y-m-d');
+$visDato = $_GET['dato'] ?? $idag;
+
+$gyldigDato = DateTime::createFromFormat('Y-m-d', $visDato);
+if(!$gyldigDato || $gyldigDato ->format('Y-m-d') !== $visDato){
+    $visDato = $idag;
+}
+$erIdag = ($visDato === $idag);
+
 $dagensBookinger = fetchRows(
     $conn,
     "SELECT MoteromId, Starttid, Sluttid
     FROM BOOKING
-    WHERE Dato = '" . date('Y-m-d') . "'
+    WHERE Dato = '" . $visDato . "'
     ORDER BY Starttid ASC"
 );
 
@@ -122,14 +132,21 @@ $naaTidspunkt = date('H:i:s');
                 <p class="empty">No offices registered.</p>
             <?php endif; ?>
         </div>
-
+        <!-- MEETING ROOMS -->
         <div class="panel">
-            <h3>Meeting rooms (today)
+            <h3>Meeting rooms (<?= $erIdag ? 'today' : htmlspecialchars($visDato) ?>)
                 <?php if($role !== 'employee'): ?>
                     <a href="add_meetingsrooms.php">+ add meeting room</a>
                 <?php endif;?>
             </h3>
-
+            <form method="get" style="margin-bottom:12px;">
+                <input type="date" name="dato" 
+                        value="<?= htmlspecialchars($visDato) ?>"
+                        onchange="this.form.submit()">
+                <?php if(!$erIdag): ?>
+                    <a href="?">Back to today</a>
+                <?php endif; ?>
+            </form>
             <?php if ($moterom): ?>
                 <table>
                     <tr>
@@ -137,7 +154,7 @@ $naaTidspunkt = date('H:i:s');
                         <th>Name</th>
                         <th>Capacity</th>
                         <th>Status</th>
-                        <th>Bookings today</th>
+                        <th>Bookings<?= $erIdag ? ' today' : '' ?></th>
                         <th></th>
                     </tr>
                     <?php foreach ($moterom as $m): ?>
@@ -157,9 +174,13 @@ $naaTidspunkt = date('H:i:s');
                             <td><?= htmlspecialchars($m['Navn'] ?: '-')?></td>
                             <td><?= $m['Kapasitet'] ? (int) $m['Kapasitet'] : '-'?></td>
                             <td>
+                                <?php if($erIdag): ?>
                                 <span class="badge <?= $opptattNaa ? 'busy' : 'ok' ?>">
                                     <?= $opptattNaa ? 'Booked now' : 'Available now'?>
                                 </span>
+                                <?php else: ?>
+                                    - 
+                                <?php endif; ?>
                             </td>
                             <td>
                             <?php if($bookinger): ?>
@@ -167,7 +188,7 @@ $naaTidspunkt = date('H:i:s');
                                     <?= htmlspecialchars(substr($b['Starttid'], 0, 5)) ?>-<?=htmlspecialchars(substr($b['Sluttid'], 0, 5))?><br>
                                 <?php endforeach;?>
                             <?php else: ?>
-                                No bookings today
+                                No bookings <?= $erIdag ? 'today' : 'on this date' ?>
                             <?php endif;?>
                             </td>
                             <td style="text-align:right;">

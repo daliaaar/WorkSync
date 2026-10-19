@@ -1,6 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
-    <style>
+<html lang="en"> 
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet">
+            <style>
         *{
     margin: 0;
     padding: 0;
@@ -77,6 +82,7 @@ nav a:active {
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    color: black;
 }
 .mockup-box{
     height: 50px;
@@ -91,95 +97,8 @@ nav a:active {
     font-weight: bold;
 }
 </style>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet">
-        <link rel="stylesheet" href="/CSS/index.css"/>
 
     </head>
-    <style>
-        *{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family:Arial, Helvetica, sans-serif;
-   
-}
-
-body{
-     background-color:white;
-     min-height: 100vh;
-}
-
-.top-header{
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 5%;
-    background-color: #ffffff;
-    border-bottom: 1px solid #e5e5e5;
-    z-index: 10;
-    
-}
-
-.main-nav .nav-links {
-    list-style: none;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 30px;
-    margin: 0;
-    padding: 0;
-}
-
-
-
-.nav-links li a{
-
-    text-decoration: none;
-    font-size: 18px;
-    color:black;
-    transition: 0.3s;
-   
-
-}
-nav a:hover {
-    color: #3b71ca;
-}
-
-nav a:active {
-    color: black;
-}
-
-.hero-section {
-    background-color: #3b71ca;
-    padding: 60px 5%;
-    color: #ffffff;
-
-}
-
-.hero-section h1{
-    font-size: 48px;
-    margin-bottom: 15px;
-    font-weight: bold;
-}
-
-.hero-section p{
-    font-size: 22px;
-    margin-bottom: 25px;
-}
-
-
-
-.btn{
-    background-color:aliceblue;
-    font-weight: bold;
-}
-
-    </style>
     <body>
         <header class="top-header">
         <div class="logo-container">
