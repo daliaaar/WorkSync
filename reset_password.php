@@ -1,69 +1,57 @@
 <?php
-require 'config.php'; 
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/mailer.php';
 
-$token = $_GET['token'] ?? $_POST['token'] ?? ''; 
-$email = null; 
+$message = '';
 
-$stmt = $conn-> prepare("SELECT Epost FROM PasswordReset WHERE Token = ? AND ExpiresAt > NOW()");
-$stmt-> bind_param("s", $token); 
-$stmt-> execute(); 
-$row = $stmt->get_Result()->fetch_assoc();
-$stmt->close();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $epost = trim($_POST['epost'] ?? '');
 
-if ($row) {
-    $email = $row['Epost'];
-}
+    if (filter_var($epost, FILTER_VALIDATE_EMAIL)) {
+        $stmt = $conn->prepare("SELECT AnsattId FROM EMPLOYEE WHERE AnsattEpost = ?");
+        $stmt->bind_param("s", $epost);
+        $stmt->execute();
+        $finnes = $stmt->get_result()->num_rows > 0;
+        $stmt->close();
 
-if ($email && SERVER["REQUEST_METHOD"] === "POST"){
-    $pw = $_POST['password'] ?? ''; 
-    $pw2 = $_POST['password2'] ?? ''; 
+        if ($finnes) {
+            $token = bin2hex(random_bytes(32));
+            $hash  = hash('sha256', $token);
 
-    if (strlen($pw) < 8) {
-        $error = "Password must be at leat 8 charcters"; 
-    } elseif ($pw !== $pw2) {
-        $error = "Passwords mmust be alike."
-    } else {
-        $hash = password_hash($pw, PASSWORD_DEFAULT);
+            $stmt = $conn->prepare("DELETE FROM PasswordReset WHERE Epost = ?");
+            $stmt->bind_param("s", $epost);
+            $stmt->execute();
+            $stmt->close();
 
-        $queries = [
-            "UPDATE ADMINISTRATOR SET Passprd =? WHERE Epost =?",
-            "UPDATE COMPANYMANAGER SET Passord = ? WHERE Epost =?",
-            "UPDATE EMPLOYEE SET AnsattPassord =? WHERE AnsattEpost =?"
-        ]; 
-        foreach ($queries as $sql) {
-            $u = $conn->prepare($sql); 
-            $u->bind_param("ss", $hash, $email);
-            $u->execute();
-            $u->close();
+            $stmt = $conn->prepare("INSERT INTO PasswordReset (Epost, Token, ExpiresAt) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))");
+            $stmt->bind_param("ss", $epost, $hash);
+            $stmt->execute();
+            $stmt->close();
+
+            $base = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . dirname($_SERVER['SCRIPT_NAME']);
+            $link = $base . '/reset_password.php?token=' . $token;
+            sendMail($epost, 'WorkSync – reset your password', "Use this link to choose a new password (valid for 1 hour):\n\n" . $link);
         }
-
-        $d = $conn->prepare("DELETE FROM PasswordReset WHERE Epost = ?");
-        $d->bind_param("ss", $email);
-        $d->execute(); 
-        $d->close();
-
-        $done = true; 
     }
+    $message = 'If the address is registered, a reset link has been sent.';
 }
 ?>
-
 <!DOCTYPE html>
-<html lang="no">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Reset Password - WorkSync</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<meta charset="UTF-8">
+<title>WorkSync – Forgot password</title>
+<link rel="stylesheet" href="style.css">
 </head>
-<body class="d-flex align-items-center justify-content-center vh-100 bg-light">
-<div class="card p-5" style="max-width: 420px; width: 100%;">
-  <h3 class="text-center mb-4">WorkSync</h3>
-
-  <?php if ($email): ?>
-    <div class="alert alert-success"> Link valid for <?= htmlspecialchars($email) ?></div>
-  <?php else: ?>
-    <div class="alert alert-danger"> Link is unvalid or expired. </div>
-    <a href="forgot_password.php">Ask for another link.</a>
-  <?php endif; ?>
-  </div>
-  </body>
-  </html>
+<body>
+<h2>Forgot your password?</h2>
+<?php if ($message): ?>
+    <p><?= htmlspecialchars($message) ?></p>
+<?php endif; ?>
+<form method="post">
+    <input type="email" name="epost" placeholder="Your email" required>
+    <button type="submit">Send reset link</button>
+</form>
+<p><a href="log_in.php">Back to login</a></p>
+</body>
+</html>

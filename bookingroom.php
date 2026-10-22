@@ -108,7 +108,7 @@ if ($choosenRoom){
 }
 ?>
 <div class="dashboard">
-
+    <a href="office.php" class="back-button">&larr; Back to offices</a>
     <h1 class="page-title">Book a meeting room</h1>
     <p class="page-subtitle">Choose a meeting room, date and time</p>
     <?php if($ok): ?>

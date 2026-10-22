@@ -222,9 +222,9 @@ $ansatte = fetchRows(
             <div class="panel quick-links">
                 <h3>Shortcuts</h3>
                 <?php if ($role !== 'employee'): ?>
-                    <a href="employees.php?action=new">+ Add employee</a>
+                    <a href="add_employees.php?action=new">+ Add employee</a>
                     <a href="equipment.php?action=new">+ Register equipment</a>
-                    <a href="office.php?action=new">+ Create office</a>
+                    <a href="add_offices.php?action=new">+ Create office</a>
                     <a href="reports.php">Delegate task</a>
                 <?php else: ?>
                     <a href="office.php">Book meeting room</a>

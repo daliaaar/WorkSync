@@ -1,5 +1,5 @@
 <?php
-$pageTitle  = "Add offices";
+$pageTitle  = "Create offices";
 $activePage = "createOffice";
 require __DIR__ . '/header.php';
 date_default_timezone_set('Europe/Oslo');

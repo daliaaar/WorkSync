@@ -121,7 +121,7 @@ $naaTidspunkt = date('H:i:s');
                                         onsubmit="return confirm('Delete office <?= (int) $k['KontorId'] ?>?');">
                                         <input type="hidden" name="delete" value="office">
                                         <input type="hidden" name="id" value="<?= (int) $k['KontorId'] ?>">
-                                        <button type="submit">Delete</button>
+                                        <button type="submit" class="btn-small danger">Delete</button>
                                 </form>
                                 <?php endif; ?>
                             </td>
@@ -136,7 +136,7 @@ $naaTidspunkt = date('H:i:s');
         <div class="panel">
             <h3>Meeting rooms (<?= $erIdag ? 'today' : htmlspecialchars($visDato) ?>)
                 <?php if($role !== 'employee'): ?>
-                    <a href="add_meetingsrooms.php">+ add meeting room</a>
+                    <a href="add_meetingsrooms.php">+ Create meeting room</a>
                 <?php endif;?>
             </h3>
             <form method="get" style="margin-bottom:12px;">
@@ -179,7 +179,9 @@ $naaTidspunkt = date('H:i:s');
                                     <?= $opptattNaa ? 'Booked now' : 'Available now'?>
                                 </span>
                                 <?php else: ?>
-                                    - 
+                                <span class="badge <?= $bookinger ? 'busy' : 'ok' ?>">
+                                    <?= $bookinger ? 'Has bookings' : 'Free all day' ?>
+                                </span>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -192,14 +194,14 @@ $naaTidspunkt = date('H:i:s');
                             <?php endif;?>
                             </td>
                             <td style="text-align:right;">
-                                <a href="bookingroom.php?room=<?=$romId ?>">Book room</a>
+                                <a href="bookingroom.php?room=<?=$romId ?>" class="btn-small">Book room</a>
                                 
                                 <?php if ($role === 'manager'): ?>
                                     <form method="post" style="display:inline;"
                                         onsubmit="return confirm('Delete room <?= $romId ?> and all its bookings?');">
                                         <input type="hidden" name="delete" value="room">
                                         <input type="hidden" name="id" value="<?= $romId ?>">
-                                        <button type="submit">Delete</button>
+                                        <button type="submit" class="btn-small danger">Delete</button>
                                     </form>
                                 <?php endif; ?>
                             </td>

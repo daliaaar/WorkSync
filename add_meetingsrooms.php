@@ -1,5 +1,5 @@
 <?php
-$pageTitle  = "Add meeting rooms";
+$pageTitle  = "Create meeting rooms";
 $activePage = "Meetingrooms";
 require __DIR__ . '/header.php';
 
@@ -49,8 +49,8 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
 }
 ?>
 <div class="dashboard">
-    <h1 class="page-title">Add a meeting room</h1>
-    <p class="page-subtitle">Add a meeting room that managers and employees can book</p>
+    <h1 class="page-title">Create a meeting room</h1>
+    <p class="page-subtitle">Create a meeting room that managers and employees can book</p>
     <?php if($saved): ?>
         <div class="msg ok"> Meeting room added successfully.</div>
     <?php endif; ?> 
@@ -74,7 +74,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         <input type="number" id="capacity" name="capacity" 
                 placeholder="20" value="<?= htmlspecialchars($capacity)?>">
 
-        <button type="submit">Add meeting room </button>
+        <button type="submit">Create meeting room </button>
         <a class="cancel" href="office.php">Cancel</a>
 
     </form>

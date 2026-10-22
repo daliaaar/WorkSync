@@ -6,6 +6,26 @@ $pageTitle  = "Employees";
 $activePage = "employees";
 require 'header.php';
 
+$msg = '';
+if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_employee'])){
+    if($role !== 'manager') {
+        http_response_code(403);
+        exit('Not allowed');
+    }
+    $id = (int) ($_POST['id'] ?? 0);
+    $conn->begin_transaction();
+    try {
+        $d = $conn->prepare("DELETE FROM EMPLOYEE WHERE AnsattId = ?");
+        $d->bind_param("i", $id);
+        $d->execute();
+        $conn->commit();
+        $msg = 'Employee deleted';
+    } catch (Exception $e) {
+        $conn->rollback();
+        $msg = 'Could not delete employee';
+    }
+}
+
 $alleAnsatte = fetchRows(
     $conn,
     "SELECT e.AnsattId, e.AnsattEpost, e.AnsattTelefonnr, e.Stilling, e.Avdeling, e.Tilgjengelighet, e.KontorId
@@ -34,6 +54,9 @@ $ansatte = $valgt === ''
 <div class="dashboard">
 
     <h1 class="page-title">Employees</h1>
+    <?php if ($msg): ?>
+        <p class="badge ok"><?= htmlspecialchars($msg) ?></p>
+    <?php endif; ?>
     <p class="page-subtitle">
         <?= count($ansatte) ?> of <?= count($alleAnsatte) ?> employees
         <?= $valgt !== '' ? 'with status "' . htmlspecialchars($valgt) . '"' : 'registered' ?>
@@ -70,6 +93,7 @@ $ansatte = $valgt === ''
                     <th>Department</th>
                     <th>Office</th>
                     <th>Availability</th>
+                    <th></th>
                 </tr>
                 <?php foreach ($ansatte as $e): ?>
                     <tr>
@@ -83,6 +107,17 @@ $ansatte = $valgt === ''
                             <span class="badge <?= statusClass($e['Tilgjengelighet']) ?>">
                                 <?= htmlspecialchars($e['Tilgjengelighet'] ?: 'Unknown') ?>
                             </span>
+                        </td>
+                        <td style="text-align:right;">
+                            <?php if($role === 'manager'): ?>
+                                    <a  href="edit_employee.php?id=<?= (int) $e['AnsattId'] ?>" class="btn-small">Edit</a>
+                                    <form method="post" style="display:inline;"
+                                        onsubmit="return confirm('Delete employee <?= (int) $e['AnsattId'] ?>? This cannot be undone.');">
+                                        <input type="hidden" name="delete_employee" value="1">
+                                        <input type="hidden" name="id" value="<?= (int) $e['AnsattId'] ?>">
+                                        <button type="submit" class="btn-small danger">Delete</button>
+                                    </form>
+                                <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
