@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="panel">
         <h3>
             New employee
-            <a href="employees.php">Back to employees!!!</a>
+            <a href="employees.php">Back to employees</a>
         </h3>
 
         <form method="POST" action="add_employees.php" class="report-form">
