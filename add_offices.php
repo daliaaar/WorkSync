@@ -76,7 +76,7 @@ if($assignEmployee){
 ?>
 <div class="dashboard">
     <h1 class="page-title">Create Office</h1>
-    <p class="page-subtitle">Create an office. You can assign it to an employee.</p>
+    <p class="page-subtitle">Create an office. You can assign it to an employee or leave it unassigned</p>
     <?php foreach($errors as $error): ?>
         <p class="badge busy"><?= htmlspecialchars($error) ?></p>
     <?php endforeach; ?>

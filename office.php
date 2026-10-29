@@ -7,6 +7,7 @@ require 'header.php';
 date_default_timezone_set('Europe/Oslo');
 
 $msg = '';
+
 if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])){
     if($role !== 'manager'){
         http_response_code(403);
@@ -110,7 +111,12 @@ $naaTidspunkt = date('H:i:s');
                     </tr>
                     <?php foreach ($kontorer as $k): ?>
                         <tr>
-                            <td><?= (int) $k['KontorId'] ?></td>
+                            <td>
+                    
+                                <a href="office_details.php?id=<?= (int) $k['KontorId'] ?>" title="View office details">
+                                    <?= (int) $k['KontorId'] ?>
+                                </a>
+                            </td>
                             <td><?= htmlspecialchars($k['AnsattEpost'] ?? 'Unassigned') ?></td>
                             <td style="text-align:right;">
                                 <span class="badge <?= $k['AnsattEpost'] ? 'busy' : 'ok' ?>">
@@ -126,6 +132,7 @@ $naaTidspunkt = date('H:i:s');
                                 <?php endif; ?>
                             </td>
                         </tr>
+                                     
                     <?php endforeach; ?>
                 </table>
             <?php else: ?>

@@ -39,8 +39,16 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             $u->execute();
             header('Location: employees.php?saved=1');
             exit;
+        } catch (mysqli_sql_exception $e) {
+            if ($e->getCode() === 1062 && strpos($e->getMessage(). 'uq_employee_kontor') !== false){
+                $msg = 'This office is already assigned to another employee';
+            } elseif ($e->getCode() === 1062) {
+                $msg = 'This email is already in use';
+            } else {
+                $msg = 'Could not save changes';
+            }
         } catch (Exception $e) {
-            $msg = 'Could not save changes (is the email already in use?)';
+            $msg = 'Could not save changes';
         }
     }
 }
@@ -81,7 +89,7 @@ $statusRader = fetchRows(
 <div class="dashboard">
     <a href="employees.php" class="back-button">&larr; Back</a>
 
-    <h1 class="page-title">Edit employee<?= (int) $emp['AnsattId'] ?></h1>
+    <h1 class="page-title">Edit employee - ID <?= (int) $emp['AnsattId'] ?></h1>
     <p class="page-subtitle">Update the employee's details </p>
 
     <?php if ($msg): ?>

@@ -29,6 +29,13 @@ CREATE TABLE OFFICE (
     AnsattId INT
 );
 
+
+-- Legger til etasje, bygning og avdeling --
+ALTER TABLE OFFICE
+  ADD COLUMN Avdeling VARCHAR(100) NULL,
+  ADD COLUMN Etasje   VARCHAR(20)  NULL,
+  ADD COLUMN Bygning  VARCHAR(100) NULL;
+
 -- 4. Opprett Ansatt-tabellen
 CREATE TABLE EMPLOYEE (
     AnsattId INT AUTO_INCREMENT PRIMARY KEY,
@@ -41,6 +48,9 @@ CREATE TABLE EMPLOYEE (
     FOREIGN KEY (AdminId) REFERENCES COMPANYMANAGER(AdminId),
     FOREIGN KEY (KontorId) REFERENCES OFFICE(KontorId)
 );
+
+-- endrer lik at et kontor tilhører kun en ansatt --
+ALTER TABLE EMPLOYEE ADD CONSTRAINT uq_employee_kontor UNIQUE (KontorId);
 
 -- la til manglende stilling og avdeling slik nevnt i rapporten: 
 ALTER TABLE EMPLOYEE
