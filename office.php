@@ -45,12 +45,19 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])){
 
 $kontorer = fetchRows(
     $conn,
-    "SELECT o.KontorId, e.AnsattEpost
+    "SELECT o.KontorId, o.Avdeling, o.Etasje, o.Bygning, e.AnsattEpost
        FROM OFFICE o
        LEFT JOIN EMPLOYEE e ON e.KontorId = o.KontorId
-      ORDER BY o.KontorId ASC"
+      ORDER BY o.Bygning IS NULL, o.Bygning ASC, o.Etasje IS NULL, LENGTH(o.Etasje) ASC, o.Etasje ASC,
+      o.KontorId ASC"
 );
 
+$grupper = [];
+foreach($kontorer as $k){
+    $bygg = !empty($k['Bygning']) ? $k['Bygning'] : 'No building';
+    $etasje = ($k['Etasje'] !== null && $k['Etasje'] !== '') ? 'Floor ' . $k['Etasje'] : 'No floor';
+    $grupper[$bygg][$etasje][] = $k;
+}
 $moterom = fetchRows(
     $conn,
     "SELECT MoteromId, Navn, Kapasitet
@@ -91,6 +98,14 @@ $naaTidspunkt = date('H:i:s');
         <p class="badge ok"><?= htmlspecialchars($msg) ?></p>
     <?php endif; ?>
 
+    <style>
+        .panel-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr); 
+            gap: 16px; 
+            
+        }
+    </style>
     <div class="panel-grid">
 
     <!-- OFFICES -->
@@ -103,42 +118,85 @@ $naaTidspunkt = date('H:i:s');
             </h3>
 
             <?php if ($kontorer): ?>
-                <table>
-                    <tr>
-                        <th>Office no.</th>
-                        <th>Assigned to</th>
-                        <th></th>
-                    </tr>
-                    <?php foreach ($kontorer as $k): ?>
-                        <tr>
-                            <td>
-                    
-                                <a href="office_details.php?id=<?= (int) $k['KontorId'] ?>" title="View office details">
-                                    <?= (int) $k['KontorId'] ?>
-                                </a>
-                            </td>
-                            <td><?= htmlspecialchars($k['AnsattEpost'] ?? 'Unassigned') ?></td>
-                            <td style="text-align:right;">
-                                <span class="badge <?= $k['AnsattEpost'] ? 'busy' : 'ok' ?>">
-                                    <?= $k['AnsattEpost'] ? 'Occupied' : 'Available' ?>
-                                </span>
-                                <?php if($role === 'manager'): ?>
+                <style>
+                    .bygg-title {
+                        font-size: 1rem;
+                        font-weight: 500;
+                        margin: 1.25rem 0 .75rem;
+                    }
+                    .bygg-title:first-of-type {
+                        margin-top: 0;
+                    }
+                    .etg-title {
+                        font-size: .8rem;
+                        opacity: .65;
+                        margin: 0 0 8px;
+                    }
+                    .kontor-rad {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 1rem; 
+                    }
+                    .kontor-boks {
+                        border: 1px solid rgba(128, 128, 128, 0.3);
+                        border-radius: 8px;
+                        padding: 10px 12px;
+                    }
+                    .kontor-boks.opptatt {
+                        border-left: 4px solid #b45309;
+                    }
+                    .kontor-boks.ledig {
+                        border-left: 4px solid #15803d;
+                    }
+                    .kontor-boks .nr {
+                        font-weight: 500;
+                    }
+                    .kontor-boks .sub {
+                        font-size: .8rem;
+                        margin-top: 2px;
+                    }
+                    .kontor-boks .avd {
+                        font-size: .75rem;
+                        opacity: .65;
+                    }
+                    .kontor-boks form {
+                        margin-top: 8px;
+                    }
+                </style>
+                <?php foreach($grupper as $bygg => $etasjer): ?>
+                    <p class="bygg-title"><?= htmlspecialchars($bygg) ?></p>
+                    <?php foreach($etasjer as $etg => $liste): ?>
+                        <p class="etg-title"><?= htmlspecialchars($etg) ?></p>
+                        <div class="kontor-rad">
+                            <?php foreach($liste as $k): ?>
+                                <div class="kontor-boks <?= $k['AnsattEpost'] ? 'opptatt' : 'ledig' ?>">
+                                    <div class="nr">
+                                        <a href="office_details.php?id=<?= (int) $k['KontorId'] ?>" title="View office details">
+                                            <?= (int) $k['KontorId'] ?>
+                                        </a>
+                                    </div>
+                                    <div class="sub"><?= $k['AnsattEpost'] ? htmlspecialchars($k['AnsattEpost']) : 'Available' ?></div>
+                                    </div>
+                                    <?php if(!empty($k['Avdeling'])): ?>
+                                        <div class="avd"><?= htmlspecialchars($k['Avdeling']) ?></div>
+                                    <?php endif; ?>
+                                      <?php if($role === 'manager'): ?>
                                     <form method="post" style="display:inline;"
                                         onsubmit="return confirm('Delete office <?= (int) $k['KontorId'] ?>?');">
                                         <input type="hidden" name="delete" value="office">
                                         <input type="hidden" name="id" value="<?= (int) $k['KontorId'] ?>">
                                         <button type="submit" class="btn-small danger">Delete</button>
                                 </form>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                                     
+                            <?php endif; ?>
+                        <div>
                     <?php endforeach; ?>
-                </table>
+                </div>
+            <?php endforeach; ?>
+            <?php endforeach; ?>
             <?php else: ?>
                 <p class="empty">No offices registered.</p>
             <?php endif; ?>
         </div>
+
         <!-- MEETING ROOMS -->
         <div class="panel">
             <h3>Meeting rooms (<?= $erIdag ? 'today' : htmlspecialchars($visDato) ?>)
@@ -178,7 +236,11 @@ $naaTidspunkt = date('H:i:s');
                         ?>
                         <tr>
                             <td><?= $romId ?></td>
-                            <td><?= htmlspecialchars($m['Navn'] ?: '-')?></td>
+                            <td>
+                                <a href="room_details.php?id=<?= $romId ?>" title="View room details">
+                                    <?= htmlspecialchars($m['Navn'] ?: 'Room ' . $romId) ?>
+                                </a>
+                            </td>
                             <td><?= $m['Kapasitet'] ? (int) $m['Kapasitet'] : '-'?></td>
                             <td>
                                 <?php if($erIdag): ?>

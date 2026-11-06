@@ -11,7 +11,7 @@ $moterom = [];
 $cancelOk = false;
 $epost = $_SESSION['email'] ?? '';
 
-$res = $conn->query("SELECT MoteromId FROM MEETINGROOM ORDER BY MoteromId");
+$res = $conn->query("SELECT MoteromId, Navn FROM MEETINGROOM ORDER BY MoteromId");
 while($row = $res->fetch_assoc()) {
     $moterom[] = $row;
 }
@@ -34,6 +34,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel'])){
 }
 
 $choosenRoom = (int) ($_POST['room'] ?? $_GET['room'] ?? 0);
+$valgtRom = null;
+foreach ($moterom as $m) {
+    if ((int) $m['MoteromId'] === $choosenRoom){
+        $valgtRom = $m;
+        break;
+    }
+}
+if (!$valgtRom){
+    header('Location: offices.php');
+    exit;
+}
+
 $dato = $_POST['dato'] ?? $_GET['dato'] ?? date('Y-m-d');
 $start = $_POST['start'] ?? '';
 $slutt = $_POST['slutt'] ?? '';
@@ -127,16 +139,8 @@ if ($choosenRoom){
             <h3>New booking</h3>
             <form method="post" action="bookingroom.php">
                 <p>
-                    <label>Room<br>
-                        <select name="room" required>
-                            <option value="">Choose a room</option>
-                            <?php foreach ($moterom as $m): ?>
-                                <option value="<?= (int) $m['MoteromId'] ?>" <?= $choosenRoom === (int) $m['MoteromId'] ? 'selected' : '' ?>>
-                                    Room <?= (int) $m['MoteromId'] ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
+                    <strong>Room <?= $choosenRoom ?><?=($valgtRom['Navn'] ? ' - ' . htmlspecialchars($valgtRom['Navn']) : '') ?></strong>
+                    <input type="hidden" name="room" value="<?= $choosenRoom ?>">
                 </p>
                 <p>
                     <label>Date<br>

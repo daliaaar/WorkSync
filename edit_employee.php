@@ -40,7 +40,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: employees.php?saved=1');
             exit;
         } catch (mysqli_sql_exception $e) {
-            if ($e->getCode() === 1062 && strpos($e->getMessage(). 'uq_employee_kontor') !== false){
+            if ($e->getCode() === 1062 && strpos($e->getMessage(), 'uq_employee_kontor') !== false){
                 $msg = 'This office is already assigned to another employee';
             } elseif ($e->getCode() === 1062) {
                 $msg = 'This email is already in use';
@@ -75,7 +75,9 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && $msg !== '') {
     $emp['KontorId']            = $kontor;
 }
 
-$kontorer = fetchRows($conn, "SELECT KontorId FROM OFFICE ORDER BY KontorId ASC");
+$kontorer = fetchRows($conn, "SELECT o.KontorId, 
+                                e.AnsattId AS EierId, e.AnsattEpost AS EierEpost FROM OFFICE o
+                                LEFT JOIN EMPLOYEE e ON e.KontorId = o.KontorId ORDER BY o.KontorId ASC");
 
 $statusRader = fetchRows(
     $conn,

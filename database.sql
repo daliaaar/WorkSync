@@ -74,7 +74,11 @@ CREATE TABLE MEETINGROOM (
     MoteromId INT AUTO_INCREMENT PRIMARY KEY,
     Tilgjengelighet VARCHAR(255)
 );
-
+-- La til avdeling, etasje og bygnig
+ALTER TABLE MEETINGROOM
+  ADD COLUMN Avdeling VARCHAR(100) NULL,
+  ADD COLUMN Etasje   VARCHAR(20)  NULL,
+  ADD COLUMN Bygning  VARCHAR(100) NULL;
 -- Opprett Booking-tabellen
 CREATE TABLE BOOKING (
     BookingId   INT AUTO_INCREMENT PRIMARY KEY,
