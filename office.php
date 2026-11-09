@@ -171,23 +171,22 @@ $naaTidspunkt = date('H:i:s');
                                 <div class="kontor-boks <?= $k['AnsattEpost'] ? 'opptatt' : 'ledig' ?>">
                                     <div class="nr">
                                         <a href="office_details.php?id=<?= (int) $k['KontorId'] ?>" title="View office details">
-                                            <?= (int) $k['KontorId'] ?>
+                                            Office <?= (int) $k['KontorId'] ?>
                                         </a>
                                     </div>
                                     <div class="sub"><?= $k['AnsattEpost'] ? htmlspecialchars($k['AnsattEpost']) : 'Available' ?></div>
-                                    </div>
                                     <?php if(!empty($k['Avdeling'])): ?>
                                         <div class="avd"><?= htmlspecialchars($k['Avdeling']) ?></div>
                                     <?php endif; ?>
                                       <?php if($role === 'manager'): ?>
-                                    <form method="post" style="display:inline;"
+                                    <form method="post" 
                                         onsubmit="return confirm('Delete office <?= (int) $k['KontorId'] ?>?');">
                                         <input type="hidden" name="delete" value="office">
                                         <input type="hidden" name="id" value="<?= (int) $k['KontorId'] ?>">
                                         <button type="submit" class="btn-small danger">Delete</button>
                                 </form>
                             <?php endif; ?>
-                        <div>
+                        </div>
                     <?php endforeach; ?>
                 </div>
             <?php endforeach; ?>

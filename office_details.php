@@ -6,6 +6,7 @@ require 'header.php';
 
 
 $msg = '';
+$msgOk = true;
 $kontorId = (int) ($_GET['id'] ?? $_POST['kontor_id'] ?? 0);
 
 if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
@@ -41,16 +42,19 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
             $msg = 'Office updated';
         } catch (mysqli_sql_exception $e) {
             $conn->rollback();
+            $msgOk = false;
             $msg = ($e->getCode() === 1062)
                 ? 'The office is already assigned to an employee'
                 : 'Could not update office';
         }  catch (Exception $e) {
             $conn->rollback();
+            $msgOk = false;
             $msg = 'Could not update office';
         }
     }
     $s = $conn->prepare(
-        "SELECT o.KontorId, o.Avdeling, o.Etasje, o.Bygning, e.AnsattId, e.AnsattEpost
+        "SELECT o.KontorId, o.Avdeling, o.Etasje, 
+                o.Bygning, e.AnsattId, e.AnsattEpost
                 FROM OFFICE o
                 LEFT JOIN EMPLOYEE e ON e.KontorId = o.KontorId
                 WHERE o.KontorId = ?"
@@ -62,43 +66,88 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
     $ansatte = ($kontor && $role === 'manager')
         ? fetchRows($conn, "SELECT AnsattId, AnsattEpost, KontorId FROM EMPLOYEE
                             ORDER BY AnsattEpost ASC") : [];
+
+$plassering = [];
+if ($kontor) {
+    $plassering = array_filter([
+        $kontor['Bygning'], 
+        !empty($kontor['Etasje']) ? 'Floor ' . $kontor['Etasje'] : null,
+        $kontor['Avdeling'],
+    ]);
+}
 ?>
+<style>
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 20px;
+        margin: 0;
+    }
+    .detail-item dt {
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .06px;
+        opacity: .65;
+        margin-bottom: 4px;
+    }    
+    .detail-item dd {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 600;
+    }
+    .detail-item dd.empty {
+        font-weight: 400;
+        opacity: .5;
+    }
+    .edit-form { max-width: 480px;}
+    .edit-form label {
+        display: block;
+        font-size: .85rem;
+        opacity: .85;
+        margin-bottom: 12px;
+    }
+    .edit-form input,
+    .edit-form select {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 4px;
+    }
+</style>
 <div class="dashboard">
     <a href="office.php" class="back-button">&larr; Back</a>
+
     <?php if(!$kontor): ?>
         <h1 class="page-title">Office not found</h1>
     <?php else: ?>
         <h1 class="page-title">Office <?= (int) $kontor['KontorId'] ?></h1>
+        <?php if ($plassering): ?>
+            <p class="page-subtitle"><?= htmlspecialchars(implode(', ', $plassering)) ?></p>
+        <?php endif; ?>
+
         <?php if ($msg): ?>
-            <p class="badge ok"><?= htmlspecialchars($msg) ?></p>
+            <p class="badge <?= $msgOk ? 'ok' : 'busy' ?>"><?= htmlspecialchars($msg) ?></p>
         <?php endif; ?>
 
         <div class="panel">
             <?php if ($role === 'manager'): ?>
-                <form method="post" action="?id=<?= (int) $kontor['KontorId'] ?>">
+                <form method="post" class="edit-form" action="?id=<?= (int) $kontor['KontorId'] ?>">
                     <input type="hidden" name="save" value="1">
                     <input type="hidden" name="kontor_id" value="<?= (int) $kontor['KontorId'] ?>">
                     
-                    <p>
-                        <label>Department<br>
+                        <label>Department
                             <input type="text" name="avdeling" maxlength="100"
                                 value="<?= htmlspecialchars($kontor['Avdeling'] ?? '') ?>">
                         </label>
-                    </p>
-                     <p>
-                        <label>Floor<br>
+                        <label>Floor
                             <input type="text" name="etasje" maxlength="20"
                                 value="<?= htmlspecialchars($kontor['Etasje'] ?? '') ?>">
                         </label>
-                    </p>
-                     <p>
-                        <label>Building<br>
+                        <label>Building
                             <input type="text" name="bygning" maxlength="100"
                                 value="<?= htmlspecialchars($kontor['Bygning'] ?? '') ?>">
                         </label>
-                    </p>
-                    <p>
-                        <label>Assigned to<br>
+                        <label>Assigned to
                             <select name="ansatt_id">
                                 <option value="0">- Unassigned - </option>
                                 <?php foreach ($ansatte as $a): ?>
@@ -116,12 +165,34 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
                     <a href="office.php">Cancel</a>
                 </form>
             <?php else: ?>
-                <table>
-                <tr><th>Department</th><td><?= htmlspecialchars($kontor['Avdeling'] ?? '-')?></td></tr>
-                <tr><th>Floor</th><td><?= htmlspecialchars($kontor['Etasje'] ?? '-')?></td></tr>
-                <tr><th>Building</th><td><?= htmlspecialchars($kontor['Bygning'] ?? '-')?></td></tr>
-                <tr><th>Assigned to</th><td><?= htmlspecialchars($kontor['AnsattEpost'] ?? 'Unassigned')?></td></tr>
-                </table>
+                <dl class="detail-grid">
+                <?php 
+                $felt = [
+                    'Building'     => $kontor['Bygning'], 
+                    'Floor'        => $kontor['Etasje'],
+                    'Department'   => $kontor['Avdeling'],
+                ];
+                foreach ($felt as $etikett => $verdi): ?>
+                    <div class="detail-item">
+                        <dt><?= $etikett ?></dt>
+                        <dd class="<?= $verdi ? '' : 'empty' ?>">
+                            <?= $verdi ? htmlspecialchars($verdi) : 'Not specified' ?>
+                        </dd>
+                    </div>
+                <?php endforeach; ?>
+                
+                <div class="detail-item">
+                    <dt>Assigned to</dt>
+                    <dd>
+                        <?php if ($kontor['AnsattEpost']): ?>
+                            <?= htmlspecialchars($kontor['AnsattEpost']) ?>
+                            <span class="badge busy">Occupied</span>
+                        <?php else: ?>
+                            <span class="badge ok">Available</span>
+                        <?php endif; ?>
+                    </dd>
+                </div>
+            </dl>
             <?php endif; ?>
         </div>
     <?php endif; ?>

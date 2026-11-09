@@ -14,6 +14,9 @@ $backLink = 'office.php';
 $errors = [];
 $action = $_GET['action'] ?? '';
 
+$avdeling = '';
+$etasje = '';
+$bygning = '';
 
 $employeesWithoutOffice = [];
 $result = $conn->prepare("SELECT AnsattId, AnsattEpost FROM EMPLOYEE WHERE KontorId IS NULL ORDER BY AnsattEpost");
@@ -23,7 +26,17 @@ while ($row = $resultEmployee->fetch_assoc()) {
     $employeesWithoutOffice[] = $row;
 }
 
+$bygningForslag = fetchRows(
+    $conn, "SELECT DISTINCT Bygning FROM OFFICE WHERE Bygning IS NOT NULL AND Bygning  <> '' ORDER BY Bygning ASC");
+$avdelingsForslag = fetchRows(
+    $conn, "SELECT DISTINCT Avdeling FROM OFFICE WHERE Avdeling IS NOT NULL AND Avdeling <> '' ORDER BY Avdeling ASC"
+);
+
 if($action === 'new' && $_SERVER['REQUEST_METHOD'] === 'POST'){
+
+    $avdeling = trim($_POST['avdeling'] ?? '');
+    $etasje = trim($_POST['etasje'] ?? '');
+    $bygning = trim($_POST['bygning'] ?? '');
 
     // setter 0 som betyr at manager ikke har valgt noen ansatte. 
     $chosenEmployeeId = (int) ($_POST['employee'] ?? 0);
@@ -42,9 +55,14 @@ if($assignEmployee){
     }
 }
     if(!$errors){
+        
+    $avdelingDb = $avdeling === '' ? null : $avdeling;
+    $etasjeDb = $etasje === '' ? null : $etasje;
+    $bygnigDb = $bygning === '' ? null : $bygning;
         $conn->begin_transaction();
         try {
-            $createOfficestmt = $conn->prepare("INSERT INTO OFFICE () VALUES ()");
+            $createOfficestmt = $conn->prepare("INSERT INTO OFFICE (Avdeling, Etasje, Bygning) VALUES (?, ?, ?)");
+            $createOfficestmt->bind_param("sss", $avdelingDb, $etasjeDb, $bygnigDb);
             $createOfficestmt->execute();
             $officeId = $conn->insert_id;
 
@@ -74,6 +92,21 @@ if($assignEmployee){
     }
 }
 ?>
+<style>
+    .edit-form { max-width: 480px; }
+    .edit-form label { 
+        display: block; 
+        font-size: 0.85rem;
+        opacity: .85;
+        margin-bottom: 12px; }
+    .edit-form input,
+    .edit-form select { 
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 4px;
+    }
+</style>
 <div class="dashboard">
     <h1 class="page-title">Create Office</h1>
     <p class="page-subtitle">Create an office. You can assign it to an employee or leave it unassigned</p>
@@ -83,10 +116,31 @@ if($assignEmployee){
 
     <div class="panel">
         <h3>Create Office</h3>
-        <form method="post" action="?action=new">
+        <form method="post" class="edit-form" action="?action=new">
+        <label>Department
+            <input type="text" name="avdeling" maxlength="100" list="avdeling-list" value="<?= htmlspecialchars($avdeling) ?>">
+        </label>
+        <datalist id="avdeling-list">
+            <?php foreach ($avdelingForslag as $f): ?>
+                <option value="<?= htmlspecialchars($f['Avdeling']) ?>">
+            <?php endforeach; ?>
+        </datalist>
+        <label>Floor
+            <input type="text" name="etasje" maxlength="20" 
+            value="<?= htmlspecialchars($etasje) ?>">
+        </label>
+        <label>Building
+            <input type="text" name="bygning" maxlength="100" list="bygning-list" 
+            value="<?= htmlspecialchars($bygning) ?>">
+        </label>
+        <datalist id="bygning-list">
+            <?php foreach ($bygningForslag as $f): ?>
+                <option value="<?= htmlspecialchars($f['Bygning']) ?>">
+            <?php endforeach; ?>
+        </datalist>
+
              <?php if ($employeesWithoutOffice): ?>
-            <p>
-                <label>Assign to Employee (optional)<br>
+                <label>Assign to Employee (optional)
                     <select name="employee">
                         <option value="">-- Select an employee (leave unassigned)--</option>
                         <?php foreach ($employeesWithoutOffice as $employee): ?>
@@ -95,7 +149,6 @@ if($assignEmployee){
                         <?php endforeach; ?>
                     </select>
                 </label>
-             </p>
 
             <?php else: ?>
                 <p class="empty">
