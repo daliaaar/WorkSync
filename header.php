@@ -179,7 +179,7 @@ $menu = [
 <!-- SIDEBAR -->
 <div class="sidebar">
     <div class="sidebar-logo">
-        <img src="WorkSync.png" alt="WorkSync Logo">
+        <img src="WorkSyncLogoNavy.png" alt="WorkSync Logo">
     </div>
 
     <?php foreach ($menu as $item): ?>
