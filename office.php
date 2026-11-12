@@ -60,9 +60,9 @@ foreach($kontorer as $k){
 }
 $moterom = fetchRows(
     $conn,
-    "SELECT MoteromId, Navn, Kapasitet
+    "SELECT MoteromId, Navn, Kapasitet, Bygning, Etasje
        FROM MEETINGROOM
-      ORDER BY MoteromId ASC"
+      ORDER BY Bygning IS NULL, Bygning ASC, Etasje IS NULL, LENGTH(Etasje) ASC, MoteromId ASC"
 );
 
 $idag = date('Y-m-d');
@@ -74,13 +74,16 @@ if(!$gyldigDato || $gyldigDato ->format('Y-m-d') !== $visDato){
 }
 $erIdag = ($visDato === $idag);
 
-$dagensBookinger = fetchRows(
-    $conn,
+$stmt = $conn->prepare(
     "SELECT MoteromId, Starttid, Sluttid
     FROM BOOKING
-    WHERE Dato = '" . $visDato . "'
+    WHERE Dato = ?
     ORDER BY Starttid ASC"
 );
+$stmt->bind_param("s", $visDato);
+$stmt->execute();
+$dagensBookinger = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
 $bookingerPerRom = [];
 foreach($dagensBookinger as $booking){
@@ -217,6 +220,7 @@ $naaTidspunkt = date('H:i:s');
                         <th>ID</th>
                         <th>Name</th>
                         <th>Capacity</th>
+                        <th>Location</th>
                         <th>Status</th>
                         <th>Bookings<?= $erIdag ? ' today' : '' ?></th>
                         <th></th>
@@ -232,6 +236,9 @@ $naaTidspunkt = date('H:i:s');
                                 break;
                             }
                         }
+                        $lokasjon = [];
+                        if(!empty($m['Bygning'])) $lokasjon[] = $m['Bygning'];
+                        if($m['Etasje'] !== null && $m['Etasje'] !== '') $lokasjon[] ='Floor' . $m['Etasje'];
                         ?>
                         <tr>
                             <td><?= $romId ?></td>

@@ -41,7 +41,7 @@ if ($conn) {
 
 function matchExisting(string $value, array $existing): string {
     foreach ($existing as $e) {
-        if (mb_strolower($e) === mb_strtolower($value)) {
+        if (mb_strtolower($e) === mb_strtolower($value)) {
             return $e;
         }
     }
@@ -51,7 +51,7 @@ function matchExisting(string $value, array $existing): string {
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
     $name = trim($_POST['name'] ?? '');
     $capacity = trim($_POST['capacity'] ?? '');
-    $building = matchExisting(trim($_POST['building'] ?? ''), $buidlings);
+    $building = matchExisting(trim($_POST['building'] ?? ''), $buildings);
     $floor = trim($_POST['floor'] ?? '');
     $department = matchExisting(trim($_POST['department'] ?? ''), $departments);
     
@@ -61,13 +61,20 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         $error = "Name must be less than 100 characters";
     } elseif ($capacity === '' && (!ctype_digit($capacity) || (int) $capacity < 1)){
         $error = "Capacity must at least be 1";
-    } elseif (strlen($floor) > 10)
+    } elseif ($building === '' || strlen($building) > 50){
+        $error  = "Building is required and must be less than 50 characters";
+    } elseif ($floor === '' || strlen($floor) > 10){
+        $error = "Floor is required and must be less than 10 characters";
+    } elseif ($department === '' || strlen($department) > 100){
+        $error = "Department is required and must be less than 100 characters";
     } elseif (!$conn){
         $error = "Error in database connection.";
     } else {
+        $capacityVal = $capacity === '' ? null : (int) $capacity;
+      
         try{
-            $stmt = $conn->prepare("INSERT INTO MEETINGROOM (Navn, Kapasitet) VALUES (?, ?)");
-            $stmt->bind_param("si", $name, $capacity);
+            $stmt = $conn->prepare("INSERT INTO MEETINGROOM (Navn, Kapasitet, Bygning, Etasje, Avdeling) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("sisss", $name, $capacityVal, $building, $floor, $department);
             $stmt->execute();
             $stmt->close();
 
@@ -107,6 +114,29 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         <input type="number" id="capacity" name="capacity" 
                 placeholder="20" value="<?= htmlspecialchars($capacity)?>">
 
+        <label for="building">Building</label>
+        <input type="text" id="building" name="building" maxlength="50" required
+                list="building-list" placeholder="Building A"
+                value="<?= htmlspecialchars($building) ?>">
+        <datalist id="building-list">
+                <?php foreach($buildings as $b): ?>
+                    <option value="<?= htmlspecialchars($b) ?>">
+                <?php endforeach; ?>
+        </datalist>
+
+        <label for="floor">Floor</label>
+        <input type="text" id="floor" name="floor" maxlength="10" required
+                    placeholder="2" value="<?= htmlspecialchars($floor)?>">
+
+        <label for="department">Department</label>
+        <input type="text" id="department" name="department" maxlength="100" required
+                    list="department-list" placeholder="Finance"
+                    value="<?= htmlspecialchars($department) ?>">
+        <datalist id="department-list">
+                    <?php foreach($departments as $d): ?>
+                        <option value="<?= htmlspecialchars($d) ?>">
+                    <?php endforeach; ?>
+        </datalist>
         <button type="submit">Create meeting room </button>
         <a class="cancel" href="office.php">Cancel</a>
 
