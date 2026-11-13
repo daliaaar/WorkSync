@@ -8,10 +8,40 @@ date_default_timezone_set('Europe/Oslo');
 
 $msg = '';
 
+if (empty($_SESSION['csrf'])) {
+    $_SESSION['csrf'] = bin2hex(random_bytes(32));
+}
+$minEpost = $_SESSION['email'] ?? '';
+
+if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_booking'])){
+    if(!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
+        http_response_code(403);
+        exit('Invalid form submission');
+    }
+    $bookingId = (int) ($_POST['booking_id'] ?? 0);
+    $erManager = ($role === 'manager') ? 1 : 0;
+    $naa= date('Y-m-d H:i:s');
+
+    $stmt = $conn->prepare(
+        "DELETE FROM BOOKING
+        WHERE BookingId = ?
+        AND (? = 1 OR AnsattEpost = ?)
+        AND TIMESTAMP(Dato, Sluttid) > ?"
+    );
+    $stmt->bind_param("iiss", $bookingId, $erManager, $minEpost, $naa);
+    $stmt->execute();
+    $msg = $stmt->affected_rows > 0 ? 'Booking cancelled' : 'Could not cancel booking';
+    $stmt->close();
+}
+
 if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])){
     if($role !== 'manager'){
         http_response_code(403);
         exit('Not allowed');
+    }
+    if(!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
+        http_response_code(403);
+        exit('Invalid form submission');
     }
     $type = $_POST['delete'];
     $id = (int) ($_POST['id'] ?? 0);
@@ -75,7 +105,7 @@ if(!$gyldigDato || $gyldigDato ->format('Y-m-d') !== $visDato){
 $erIdag = ($visDato === $idag);
 
 $stmt = $conn->prepare(
-    "SELECT MoteromId, Starttid, Sluttid
+    "SELECT BookingId, MoteromId, Starttid, Sluttid, AnsattEpost
     FROM BOOKING
     WHERE Dato = ?
     ORDER BY Starttid ASC"
@@ -184,6 +214,7 @@ $naaTidspunkt = date('H:i:s');
                                       <?php if($role === 'manager'): ?>
                                     <form method="post" 
                                         onsubmit="return confirm('Delete office <?= (int) $k['KontorId'] ?>?');">
+                                        <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
                                         <input type="hidden" name="delete" value="office">
                                         <input type="hidden" name="id" value="<?= (int) $k['KontorId'] ?>">
                                         <button type="submit" class="btn-small danger">Delete</button>
@@ -238,7 +269,7 @@ $naaTidspunkt = date('H:i:s');
                         }
                         $lokasjon = [];
                         if(!empty($m['Bygning'])) $lokasjon[] = $m['Bygning'];
-                        if($m['Etasje'] !== null && $m['Etasje'] !== '') $lokasjon[] ='Floor' . $m['Etasje'];
+                        if($m['Etasje'] !== null && $m['Etasje'] !== '') $lokasjon[] ='Floor ' . $m['Etasje'];
                         ?>
                         <tr>
                             <td><?= $romId ?></td>
@@ -248,6 +279,7 @@ $naaTidspunkt = date('H:i:s');
                                 </a>
                             </td>
                             <td><?= $m['Kapasitet'] ? (int) $m['Kapasitet'] : '-'?></td>
+                            <td><?= $lokasjon ? htmlspecialchars(implode(', ', $lokasjon)) : '-' ?></td>
                             <td>
                                 <?php if($erIdag): ?>
                                 <span class="badge <?= $opptattNaa ? 'busy' : 'ok' ?>">
@@ -262,7 +294,25 @@ $naaTidspunkt = date('H:i:s');
                             <td>
                             <?php if($bookinger): ?>
                                 <?php foreach($bookinger as $b): ?>
-                                    <?= htmlspecialchars(substr($b['Starttid'], 0, 5)) ?>-<?=htmlspecialchars(substr($b['Sluttid'], 0, 5))?><br>
+                                    <?php
+                                    $erMin = ($b['AnsattEpost'] === $minEpost);
+                                    $erFerdig = ($visDato < $idag) || ($erIdag && $b['Sluttid'] <= $naaTidspunkt);
+                                    $kanKansellere = ($role === 'manager' || $erMin) && !$erFerdig;
+                                    $bekreftelse = $erMin ? 'Cancel your booking?' : 'Cancel this booking made by ' . $b['AnsattEpost'] . '?';
+                                 ?>
+                                <span <?= $role === 'manager' ? 'title="' . htmlspecialchars($b['AnsattEpost']) . '"' : '' ?>>
+                                    <?= htmlspecialchars(substr($b['Starttid'], 0, 5)) ?>-<?=htmlspecialchars(substr($b['Sluttid'], 0, 5))?>
+                                </span>
+                                <?php if($kanKansellere): ?>
+                                    <form method="post" style="display:inline;"
+                                            onsubmit="return confirm(<?= htmlspecialchars(json_encode($bekreftelse), ENT_QUOTES) ?>);">
+                                        <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+                                        <input type="hidden" name="cancel_booking" value="1">
+                                        <input type="hidden" name="booking_id" value="<?= (int) $b['BookingId'] ?>">
+                                        <button type="submit" class="btn-small danger">Cancel</button>
+                                    </form>
+                                <?php endif; ?>
+                                <br>
                                 <?php endforeach;?>
                             <?php else: ?>
                                 No bookings <?= $erIdag ? 'today' : 'on this date' ?>
@@ -274,6 +324,7 @@ $naaTidspunkt = date('H:i:s');
                                 <?php if ($role === 'manager'): ?>
                                     <form method="post" style="display:inline;"
                                         onsubmit="return confirm('Delete room <?= $romId ?> and all its bookings?');">
+                                         <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
                                         <input type="hidden" name="delete" value="room">
                                         <input type="hidden" name="id" value="<?= $romId ?>">
                                         <button type="submit" class="btn-small danger">Delete</button>
