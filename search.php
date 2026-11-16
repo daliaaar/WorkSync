@@ -11,9 +11,19 @@ if ($q !== '') {
 
     /* Alle søk er begrenset til brukerens egen bedrift */
     $employees = fetchRows($conn,
-        "SELECT AnsattId, AnsattEpost, Stilling, Avdeling, KontorId FROM EMPLOYEE
-         WHERE BedriftsId = ? AND (AnsattEpost LIKE ? OR Stilling LIKE ? OR Avdeling LIKE ?)",
-        'isss', [$minBedriftsId, $like, $like, $like]);
+    "SELECT AnsattId, Fornavn, Etternavn, AnsattEpost, Stilling, Avdeling, KontorId
+     FROM EMPLOYEE
+     WHERE BedriftsId = ?
+       AND (
+           Fornavn LIKE ?
+           OR Etternavn LIKE ?
+           OR CONCAT(Fornavn, ' ', Etternavn) LIKE ?
+           OR AnsattEpost LIKE ?
+           OR Stilling LIKE ?
+           OR Avdeling LIKE ?
+       )",
+    'issssss',
+    [$minBedriftsId, $like, $like, $like, $like, $like, $like]);
 
     $managerSql = "SELECT Navn, Epost, Bedriftsnavn FROM COMPANYMANAGER WHERE BedriftsId = ?";
     if (in_array(strtolower($q), ['manager', 'managers'], true)) {
@@ -33,7 +43,7 @@ if ($q !== '') {
          FROM EQUIPMENT e LEFT JOIN EMPLOYEE a ON e.AnsattId = a.AnsattId
          WHERE e.BedriftsId = ?
            AND (e.Navn LIKE ? OR e.Type LIKE ? OR a.AnsattEpost LIKE ? OR a.KontorId LIKE ?)",
-        'issss', [$minBedriftsId, $like, $like, $like, $like, $like]);
+        'issss', [$minBedriftsId, $like, $like, $like, $like]);
 }
 ?>
 
@@ -47,7 +57,13 @@ if ($q !== '') {
     <?php if ($employees): ?>
         <h3>Employees</h3>
         <?php foreach ($employees as $r): ?>
-            <p><?= htmlspecialchars($r['AnsattEpost']) ?> – <?= htmlspecialchars($r['Stilling'] ?? '') ?>, <?= htmlspecialchars($r['Avdeling'] ?? '') ?> (office <?= htmlspecialchars($r['KontorId'] ?? '–') ?>)</p>
+            <p>
+                <?= htmlspecialchars($r['Fornavn'] . ' ' . $r['Etternavn']) ?>
+                – <?= htmlspecialchars($r['AnsattEpost']) ?>
+                – <?= htmlspecialchars($r['Stilling'] ?? '') ?>,
+                <?= htmlspecialchars($r['Avdeling'] ?? '') ?>
+                (office <?= htmlspecialchars($r['KontorId'] ?? '–') ?>)
+            </p>
         <?php endforeach; ?>
     <?php endif; ?>
 
