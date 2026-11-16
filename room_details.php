@@ -30,10 +30,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
     } else {
         try {
             $u = $conn->prepare(
-                "UPDATE MEETINGROOM SET Navn = ?, Kapasitet = ?, Avdeling = ?, Etasje = ?, Bygning = ? WHERE 
-                MoteromId = ?"
+                "UPDATE MEETINGROOM SET Navn = ?, Kapasitet = ?, Avdeling = ?, Etasje = ?, Bygning = ? 
+                  WHERE MoteromId = ? AND BedriftsId = ?"
             );
-            $u->bind_param("sisssi", $navn, $kapasitet, $avdeling, $etasje, $bygning, $romId);
+            $u->bind_param("sisssii", $navn, $kapasitet, $avdeling, $etasje, $bygning, $romId, $minBedriftsId);
             $u->execute();
             $msg = 'Meeting room updated';
 
@@ -45,9 +45,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
 }
 
 $s = $conn->prepare(
-    "SELECT MoteromId, Navn, Kapasitet, Avdeling, Etasje, Bygning FROM MEETINGROOM WHERE MoteromId = ?"
+    "SELECT MoteromId, Navn, Kapasitet, Avdeling, Etasje, Bygning FROM MEETINGROOM WHERE MoteromId = ? AND BedriftsId = ?"
 );
-$s->bind_param("i", $romId);
+$s->bind_param("ii", $romId, $minBedriftsId);
 $s->execute();
 $rom = $s->get_result()->fetch_assoc();
 

@@ -1,11 +1,11 @@
 <?php
 /* WorkSync – Employees
    SRD kap. 2.1: oversikt med kontaktinformasjon og tilgjengelighet */
-
+ 
 $pageTitle  = "Employees";
 $activePage = "employees";
 require 'header.php';
-
+ 
 $msg = '';
 if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_employee'])){
     if($role !== 'manager') {
@@ -15,44 +15,48 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_employee'])){
     $id = (int) ($_POST['id'] ?? 0);
     $conn->begin_transaction();
     try {
-        $d = $conn->prepare("DELETE FROM EMPLOYEE WHERE AnsattId = ?");
-        $d->bind_param("i", $id);
+        /* Kan bare slette ansatte i egen bedrift */
+        $d = $conn->prepare("DELETE FROM EMPLOYEE WHERE AnsattId = ? AND BedriftsId = ?");
+        $d->bind_param("ii", $id, $minBedriftsId);
         $d->execute();
         $conn->commit();
-        $msg = 'Employee deleted';
+        $msg = $d->affected_rows > 0 ? 'Employee deleted' : 'Could not delete employee';
     } catch (Exception $e) {
         $conn->rollback();
         $msg = 'Could not delete employee';
     }
 }
-
+ 
 $alleAnsatte = fetchRows(
     $conn,
-    "SELECT e.AnsattId, e.AnsattEpost, e.AnsattTelefonnr, e.Stilling, e.Avdeling, e.Tilgjengelighet, e.KontorId
+    "SELECT e.AnsattId, e.Fornavn, e.Etternavn, e.AnsattEpost, e.AnsattTelefonnr, e.Stilling, e.Avdeling, e.Tilgjengelighet, e.KontorId
        FROM EMPLOYEE e
-      ORDER BY e.AnsattId ASC"
+      WHERE e.BedriftsId = ?
+      ORDER BY e.AnsattId ASC",
+    'i',
+    [$minBedriftsId]
 );
-
+ 
 $statuser = [];
 foreach($alleAnsatte as $a){
     $statuser[] = $a['Tilgjengelighet'] ?: 'Unknown';
 }
 $statuser = array_values(array_unique($statuser));
 sort($statuser);
-
+ 
 $valgt = $_GET['status'] ?? '';
 if(!in_array($valgt, $statuser, true)){
     $valgt = '';
 }
-
+ 
 $ansatte = $valgt === ''
     ? $alleAnsatte : array_filter($alleAnsatte, function($a) use ($valgt){
         return($a['Tilgjengelighet'] ?: 'Unknown') === $valgt;
     });
 ?>
-
+ 
 <div class="dashboard">
-
+ 
     <h1 class="page-title">Employees</h1>
     <?php if ($msg): ?>
         <p class="badge ok"><?= htmlspecialchars($msg) ?></p>
@@ -82,11 +86,13 @@ $ansatte = $valgt === ''
                 <a href="add_employees.php?action=new">+ Add employee</a>
             <?php endif; ?>
         </h3>
-
+ 
         <?php if ($ansatte): ?>
             <table>
                 <tr>
                     <th>Employee no.</th>
+                    <th>Firstname</th>
+                    <th>Lastname</th>
                     <th>Email</th>
                     <th>Phone</th>
                     <th>Position</th>
@@ -98,6 +104,8 @@ $ansatte = $valgt === ''
                 <?php foreach ($ansatte as $e): ?>
                     <tr>
                         <td><?= (int) $e['AnsattId'] ?></td>
+                        <td><?= htmlspecialchars($e['Fornavn'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($e['Etternavn'] ?? '') ?></td>
                         <td><?= htmlspecialchars($e['AnsattEpost'] ?? '') ?></td>
                         <td><?= htmlspecialchars($e['AnsattTelefonnr'] ?: '–') ?></td>
                         <td><?= htmlspecialchars($e['Stilling'] ?: '-')?></td>
@@ -126,7 +134,7 @@ $ansatte = $valgt === ''
             <p class="empty">No employees registered.</p>
         <?php endif; ?>
     </div>
-
+ 
 </div>
-
+ 
 <?php require 'footer.php'; ?>

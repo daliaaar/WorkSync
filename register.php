@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/config.php'; // skal sette $conn (mysqli-tilkobling)
+require_once __DIR__ . '/config.php'; 
 
 $error = "";
 $success_message = "";
@@ -10,11 +10,11 @@ $phone = "";
 $managerName = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $email           = trim($_POST['email'] ?? '');
-    $companyName     = trim($_POST['companyName'] ?? '');
-    $phone           = trim($_POST['phone'] ?? '');
-    $managerName     = trim($_POST['managerName'] ?? '');
-    $password        = $_POST['password'] ?? '';
+    $email             = trim($_POST['email'] ?? '');
+    $companyName       = trim($_POST['companyName'] ?? '');
+    $phone             = trim($_POST['phone'] ?? '');
+    $managerName       = trim($_POST['managerName'] ?? '');
+    $password          = $_POST['password'] ?? '';
     $passwordConfirm = $_POST['confirmPassword'] ?? '';
     $termsAccepted   = isset($_POST['terms']);
 
@@ -349,6 +349,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </div>
     <!-- Høyre side -->
     <div class="form-section">
+        <div class="mb-4">
+            <a href="index.php" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2 px-3 py-2 text-decoration-none" style="border-radius: 8px; font-weight: 500;">
+                <i class="bi bi-arrow-left"></i> Back to home
+            </a>
+        </div>
+
         <h1>CREATE YOUR COMPANY ACCOUNT</h1>
         <p class="subtitle">It only takes a minute to get your company set up.</p>
         <?php if (!empty($error)): ?>

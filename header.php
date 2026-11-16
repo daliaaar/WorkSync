@@ -125,6 +125,19 @@ function fetchRows($conn, $sql, $types = '', $params = [])
     }
 }
 
+$minBedriftsId = 0;
+if ($conn) {
+    if ($role === 'manager') {
+        $minBedriftsId = (int) $userId;
+    } elseif ($role === 'employee') {
+        $r = fetchRows($conn, "SELECT BedriftsId FROM EMPLOYEE WHERE AnsattId = ?", 'i', [$userId]);
+        $minBedriftsId = (int) ($r[0]['BedriftsId'] ?? 0);
+    } else {
+        $r = fetchRows($conn, "SELECT BedriftsId FROM ADMINISTRATOR WHERE AdminId = ?", 'i', [$userId]);
+        $minBedriftsId = (int) ($r[0]['BedriftsId'] ?? 0);
+    }
+}
+
 /** Viser et tall, eller en strek hvis databasen ikke svarte. */
 function num($value)
 {

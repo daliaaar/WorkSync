@@ -9,6 +9,13 @@ $msg = '';
 $msgOk = true;
 $kontorId = (int) ($_GET['id'] ?? $_POST['kontor_id'] ?? 0);
 
+/* Kontoret må tilhøre brukerens bedrift, ellers stoppes alt under */
+$eier = fetchRows($conn, "SELECT 1 FROM OFFICE WHERE KontorId = ? AND BedriftsId = ?", 'ii', [$kontorId, $minBedriftsId]);
+if (!$eier) {
+    http_response_code(404);
+    exit('Office not found');
+}
+
 if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
     if($role !== 'manager'){
         http_response_code(403);
@@ -25,17 +32,17 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
 
         $conn->begin_transaction();
         try {
-            $o = $conn->prepare("UPDATE OFFICE SET Avdeling = ?, Etasje = ?, Bygning = ? WHERE KontorId = ?");
-            $o->bind_param("sssi", $avdeling, $etasje, $bygning, $kontorId);
+            $o = $conn->prepare("UPDATE OFFICE SET Avdeling = ?, Etasje = ?, Bygning = ? WHERE KontorId = ? AND BedriftsId = ?");
+            $o->bind_param("sssii", $avdeling, $etasje, $bygning, $kontorId, $minBedriftsId);
             $o->execute();
 
-            $u = $conn->prepare("UPDATE EMPLOYEE SET KontorId = NULL WHERE KontorId = ?");
-            $u->bind_param("i", $kontorId);
+            $u = $conn->prepare("UPDATE EMPLOYEE SET KontorId = NULL WHERE KontorId = ? AND BedriftsId = ?");
+            $u->bind_param("ii", $kontorId, $minBedriftsId);
             $u->execute();
 
             if($ansattId > 0) {
-                $a = $conn->prepare("UPDATE EMPLOYEE SET KontorId = ? WHERE AnsattId = ?");
-                $a->bind_param("ii", $kontorId, $ansattId);
+                $a = $conn->prepare("UPDATE EMPLOYEE SET KontorId = ? WHERE AnsattId = ? AND BedriftsId = ?");
+                $a->bind_param("iii", $kontorId, $ansattId, $minBedriftsId);
                 $a->execute();
             }
             $conn->commit();
@@ -57,15 +64,16 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save'])) {
                 o.Bygning, e.AnsattId, e.AnsattEpost
                 FROM OFFICE o
                 LEFT JOIN EMPLOYEE e ON e.KontorId = o.KontorId
-                WHERE o.KontorId = ?"
+                WHERE o.KontorId = ? AND o.BedriftsId = ?"
     );
-    $s->bind_param("i", $kontorId);
+    $s->bind_param("ii", $kontorId, $minBedriftsId);
     $s->execute();
     $kontor = $s->get_result()->fetch_assoc();
 
     $ansatte = ($kontor && $role === 'manager')
         ? fetchRows($conn, "SELECT AnsattId, AnsattEpost, KontorId FROM EMPLOYEE
-                            ORDER BY AnsattEpost ASC") : [];
+                            WHERE BedriftsId = ?
+                            ORDER BY AnsattEpost ASC", 'i', [$minBedriftsId]) : [];
 
 $plassering = [];
 if ($kontor) {

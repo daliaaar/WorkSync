@@ -47,6 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Invalid form submission. Please try again.";
     } elseif (!$conn) {
         $error = "Database connection is not available";
+    } elseif ($minBedriftsId === 0) {
+        $error = "No company found for your account";
     } else {
         try {
             if (in_array($handling, ['register', 'update'], true) && $canManage) {
@@ -77,16 +79,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $stmt = $conn->prepare(
                             "UPDATE EQUIPMENT
                                 SET Navn = ?, Type = ?, Kjopsdato = ?, Garanti = ?
-                              WHERE UtstyrId = ?"
+                              WHERE UtstyrId = ? AND BedriftsId = ?"
                         );
-                        $stmt->bind_param("ssssi", $navn, $typeDb, $kjopDb, $garantiDb, $editId);
+                        $stmt->bind_param("ssssii", $navn, $typeDb, $kjopDb, $garantiDb, $editId, $minBedriftsId);
                         $melding = 'updated';
                     } else {
                         $stmt = $conn->prepare(
-                            "INSERT INTO EQUIPMENT (Navn, Type, Status, Kjopsdato, Garanti)
-                             VALUES (?, ?, 'Available', ?, ?)"
+                            "INSERT INTO EQUIPMENT (Navn, Type, Status, Kjopsdato, Garanti, BedriftsId)
+                             VALUES (?, ?, 'Available', ?, ?, ?)"
                         );
-                        $stmt->bind_param("ssss", $navn, $typeDb, $kjopDb, $garantiDb);
+                        $stmt->bind_param("ssssi", $navn, $typeDb, $kjopDb, $garantiDb, $minBedriftsId);
                         $melding = 'registered';
                     }
                     $stmt->execute();
@@ -100,9 +102,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $id   = (int) ($_POST['id'] ?? 0);
                 $stmt = $conn->prepare(
-                    "DELETE FROM EQUIPMENT WHERE UtstyrId = ? AND AnsattId IS NULL"
+                    "DELETE FROM EQUIPMENT WHERE UtstyrId = ? AND AnsattId IS NULL AND BedriftsId = ?"
                 );
-                $stmt->bind_param("i", $id);
+                $stmt->bind_param("ii", $id, $minBedriftsId);
                 $stmt->execute();
                 $slettet = $stmt->affected_rows === 1;
                 $stmt->close();
@@ -119,9 +121,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mine = (int) $userId;
                 $stmt = $conn->prepare(
                     "UPDATE EQUIPMENT SET Status = 'Reserved', AnsattId = ?
-                      WHERE UtstyrId = ? AND AnsattId IS NULL"
+                      WHERE UtstyrId = ? AND AnsattId IS NULL AND BedriftsId = ?"
                 );
-                $stmt->bind_param("ii", $mine, $id);
+                $stmt->bind_param("iii", $mine, $id, $minBedriftsId);
                 $stmt->execute();
                 $ok = $stmt->affected_rows === 1;
                 $stmt->close();
@@ -140,15 +142,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $mine = (int) $userId;
                     $stmt = $conn->prepare(
                         "UPDATE EQUIPMENT SET Status = 'Available', AnsattId = NULL
-                          WHERE UtstyrId = ? AND AnsattId = ?"
+                          WHERE UtstyrId = ? AND AnsattId = ? AND BedriftsId = ?"
                     );
-                    $stmt->bind_param("ii", $id, $mine);
+                    $stmt->bind_param("iii", $id, $mine, $minBedriftsId);
                 } else {
                     $stmt = $conn->prepare(
                         "UPDATE EQUIPMENT SET Status = 'Available', AnsattId = NULL
-                          WHERE UtstyrId = ?"
+                          WHERE UtstyrId = ? AND BedriftsId = ?"
                     );
-                    $stmt->bind_param("i", $id);
+                    $stmt->bind_param("ii", $id, $minBedriftsId);
                 }
                 $stmt->execute();
                 $stmt->close();
@@ -170,9 +172,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $rad = fetchRows(
         $conn,
-        "SELECT Navn, Type, Kjopsdato, Garanti FROM EQUIPMENT WHERE UtstyrId = ?",
-        'i',
-        [$editId]
+        "SELECT Navn, Type, Kjopsdato, Garanti FROM EQUIPMENT WHERE UtstyrId = ? AND BedriftsId = ?",
+        'ii',
+        [$editId, $minBedriftsId]
     );
 
     if ($rad) {
@@ -193,7 +195,10 @@ $utstyr = fetchRows(
             u.AnsattId, e.AnsattEpost
        FROM EQUIPMENT u
        LEFT JOIN EMPLOYEE e ON e.AnsattId = u.AnsattId
-      ORDER BY u.UtstyrId ASC"
+      WHERE u.BedriftsId = ?
+      ORDER BY u.UtstyrId ASC",
+    'i',
+    [$minBedriftsId]
 );
 
 $meldinger = [

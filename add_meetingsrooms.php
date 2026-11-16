@@ -26,16 +26,18 @@ $departments = [];
 
 if ($conn) {
     $rows = fetchRows($conn,
-            "SELECT Bygning FROM OFFICE WHERE Bygning IS NOT NULL AND
-            Bygning <> '' UNION
-            SELECT Bygning FROM MEETINGROOM WHERE Bygning IS NOT NULL AND Bygning <> ''
-            ORDER BY Bygning ASC");
+            "SELECT Bygning FROM OFFICE WHERE BedriftsId = ? AND Bygning IS NOT NULL AND Bygning <> ''
+             UNION
+             SELECT Bygning FROM MEETINGROOM WHERE BedriftsId = ? AND Bygning IS NOT NULL AND Bygning <> ''
+             ORDER BY Bygning ASC",
+            'ii', [$minBedriftsId, $minBedriftsId]);
     $buildings = array_column($rows,'Bygning');
     $rows = fetchRows($conn,
-            "SELECT Avdeling FROM OFFICE WHERE Avdeling IS NOT NULL AND Avdeling <> ''
-            UNION
-            SELECT Avdeling FROM MEETINGROOM WHERE Avdeling IS NOT NULL AND Avdeling <> '' 
-            ORDER BY Avdeling ASC");
+            "SELECT Avdeling FROM OFFICE WHERE BedriftsId = ? AND Avdeling IS NOT NULL AND Avdeling <> ''
+             UNION
+             SELECT Avdeling FROM MEETINGROOM WHERE BedriftsId = ? AND Avdeling IS NOT NULL AND Avdeling <> ''
+             ORDER BY Avdeling ASC",
+            'ii', [$minBedriftsId, $minBedriftsId]);
     $departments = array_column($rows, 'Avdeling');
 }
 
@@ -57,6 +59,8 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     
     if (!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
         $error = "Invalid form submission. Please try again.";
+    } elseif ($minBedriftsId === 0) {
+        $error = "No company found for your account";
     } elseif ($name === '' || strlen($name) > 100){
         $error = "Name must be less than 100 characters";
     } elseif ($capacity === '' && (!ctype_digit($capacity) || (int) $capacity < 1)){
@@ -73,8 +77,8 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
         $capacityVal = $capacity === '' ? null : (int) $capacity;
       
         try{
-            $stmt = $conn->prepare("INSERT INTO MEETINGROOM (Navn, Kapasitet, Bygning, Etasje, Avdeling) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("sisss", $name, $capacityVal, $building, $floor, $department);
+            $stmt = $conn->prepare("INSERT INTO MEETINGROOM (Navn, Kapasitet, Bygning, Etasje, Avdeling, BedriftsId) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("sisssi", $name, $capacityVal, $building, $floor, $department, $minBedriftsId);
             $stmt->execute();
             $stmt->close();
 

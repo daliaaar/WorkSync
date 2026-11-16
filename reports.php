@@ -84,6 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Invalid form submission. Please try again.";
     } elseif (!in_array($formType, ['task', 'deviation'], true)) {
         $error = "Unknown report type";
+    } elseif ($minBedriftsId === 0) {
+        $error = "No company found for your account";
     } elseif ($handling === 'status') {
         if ($formType !== 'task' || $id <= 0 || !in_array($statusValgt, $statuser, true)) {
             $error = "Invalid status update";
@@ -92,11 +94,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             try {
                 if ($isEmployee) {
-                    $stmt = $conn->prepare("UPDATE TASKS SET Status = ? WHERE OppgaveId = ? AND AnsattId = ?");
-                    $stmt->bind_param("sii", $statusValgt, $id, $mine);
+                    $stmt = $conn->prepare("UPDATE TASKS SET Status = ? WHERE OppgaveId = ? AND AnsattId = ? AND BedriftsId = ?");
+                    $stmt->bind_param("siii", $statusValgt, $id, $mine, $minBedriftsId);
                 } else {
-                    $stmt = $conn->prepare("UPDATE TASKS SET Status = ? WHERE OppgaveId = ?");
-                    $stmt->bind_param("si", $statusValgt, $id);
+                    $stmt = $conn->prepare("UPDATE TASKS SET Status = ? WHERE OppgaveId = ? AND BedriftsId = ?");
+                    $stmt->bind_param("sii", $statusValgt, $id, $minBedriftsId);
                 }
                 $stmt->execute();
                 $stmt->close();
@@ -117,8 +119,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($handling === 'delete') {
         try {
             $tabell = $formType === 'task' ? 'TASKS' : 'DEVIATION';
-            $stmt = $conn->prepare("DELETE FROM $tabell WHERE OppgaveId = ?");
-            $stmt->bind_param("i", $id);
+            $stmt = $conn->prepare("DELETE FROM $tabell WHERE OppgaveId = ? AND BedriftsId = ?");
+            $stmt->bind_param("ii", $id, $minBedriftsId);
             $stmt->execute();
             $stmt->close();
 
@@ -151,32 +153,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $fristDb    = $frist !== '' ? $frist : null;
             $detaljerDb = $detaljer !== '' ? $detaljer : null;
-            $bedriftsId = ($role === 'manager') ? $mine : null;
+            /* Bedriften kommer alltid fra innloggingen */
+            $bedriftsId = $minBedriftsId;
             $ansattTask = ctype_digit((string) $valgtAnsatt) ? (int) $valgtAnsatt : null;
             $ansattDev  = $isEmployee ? $mine : null;
 
-            try {
-                if ($id > 0 && $formType === 'task') {
-                    $stmt = $conn->prepare("UPDATE TASKS SET Beskrivelse = ?, Detaljer = ?, Frist = ?, AnsattId = ?, Status = ? WHERE OppgaveId = ?");
-                    $stmt->bind_param("sssisi", $beskrivelse, $detaljerDb, $fristDb, $ansattTask, $statusValgt, $id);
-                } elseif ($id > 0) {
-                    $stmt = $conn->prepare("UPDATE DEVIATION SET Beskrivelse = ?, Frist = ? WHERE OppgaveId = ?");
-                    $stmt->bind_param("ssi", $beskrivelse, $fristDb, $id);
-                } elseif ($formType === 'task') {
-                    $stmt = $conn->prepare("INSERT INTO TASKS (Beskrivelse, Detaljer, Frist, BedriftsId, AnsattId, Status) VALUES (?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("sssiis", $beskrivelse, $detaljerDb, $fristDb, $bedriftsId, $ansattTask, $statusValgt);
-                } else {
-                    $stmt = $conn->prepare("INSERT INTO DEVIATION (Beskrivelse, Frist, BedriftsId, AnsattId) VALUES (?, ?, ?, ?)");
-                    $stmt->bind_param("ssii", $beskrivelse, $fristDb, $bedriftsId, $ansattDev);
-                }
-                $stmt->execute();
-                $stmt->close();
+            /* Valgt ansatt må tilhøre samme bedrift */
+            if ($formType === 'task' && $ansattTask !== null
+                && !fetchRows($conn, "SELECT 1 FROM EMPLOYEE WHERE AnsattId = ? AND BedriftsId = ?", 'ii', [$ansattTask, $minBedriftsId])) {
+                $error = "Invalid employee";
+            } else {
+                try {
+                    if ($id > 0 && $formType === 'task') {
+                        $stmt = $conn->prepare("UPDATE TASKS SET Beskrivelse = ?, Detaljer = ?, Frist = ?, AnsattId = ?, Status = ? WHERE OppgaveId = ? AND BedriftsId = ?");
+                        $stmt->bind_param("sssisii", $beskrivelse, $detaljerDb, $fristDb, $ansattTask, $statusValgt, $id, $minBedriftsId);
+                    } elseif ($id > 0) {
+                        $stmt = $conn->prepare("UPDATE DEVIATION SET Beskrivelse = ?, Frist = ? WHERE OppgaveId = ? AND BedriftsId = ?");
+                        $stmt->bind_param("ssii", $beskrivelse, $fristDb, $id, $minBedriftsId);
+                    } elseif ($formType === 'task') {
+                        $stmt = $conn->prepare("INSERT INTO TASKS (Beskrivelse, Detaljer, Frist, BedriftsId, AnsattId, Status) VALUES (?, ?, ?, ?, ?, ?)");
+                        $stmt->bind_param("sssiis", $beskrivelse, $detaljerDb, $fristDb, $bedriftsId, $ansattTask, $statusValgt);
+                    } else {
+                        $stmt = $conn->prepare("INSERT INTO DEVIATION (Beskrivelse, Frist, BedriftsId, AnsattId) VALUES (?, ?, ?, ?)");
+                        $stmt->bind_param("ssii", $beskrivelse, $fristDb, $bedriftsId, $ansattDev);
+                    }
+                    $stmt->execute();
+                    $stmt->close();
 
-                header("Location: reports.php?saved=" . $formType . ($id > 0 ? '_updated' : ''));
-                exit();
-            } catch (mysqli_sql_exception $e) {
-                error_log('Reports save: ' . $e->getMessage());
-                $error = "Could not save. Please try again later.";
+                    header("Location: reports.php?saved=" . $formType . ($id > 0 ? '_updated' : ''));
+                    exit();
+                } catch (mysqli_sql_exception $e) {
+                    error_log('Reports save: ' . $e->getMessage());
+                    $error = "Could not save. Please try again later.";
+                }
             }
         }
     }
@@ -185,10 +194,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($editTask > 0) {
         $formType = 'task';
-        $rad = fetchRows($conn, "SELECT Beskrivelse, Detaljer, Frist, AnsattId, Status FROM TASKS WHERE OppgaveId = ?", 'i', [$editTask]);
+        $rad = fetchRows($conn, "SELECT Beskrivelse, Detaljer, Frist, AnsattId, Status FROM TASKS WHERE OppgaveId = ? AND BedriftsId = ?", 'ii', [$editTask, $minBedriftsId]);
     } else {
         $formType = 'deviation';
-        $rad = fetchRows($conn, "SELECT Beskrivelse, Frist, AnsattId FROM DEVIATION WHERE OppgaveId = ?", 'i', [$editDev]);
+        $rad = fetchRows($conn, "SELECT Beskrivelse, Frist, AnsattId FROM DEVIATION WHERE OppgaveId = ? AND BedriftsId = ?", 'ii', [$editDev, $minBedriftsId]);
     }
 
     if ($rad) {
@@ -211,26 +220,27 @@ if ($viewTask > 0) {
     $visSql = "SELECT t.OppgaveId, t.Beskrivelse, t.Detaljer, t.Frist, t.Status, e.AnsattEpost
                  FROM TASKS t
                  LEFT JOIN EMPLOYEE e ON e.AnsattId = t.AnsattId
-                WHERE t.OppgaveId = ?";
+                WHERE t.OppgaveId = ? AND t.BedriftsId = ?";
     $vis = $isEmployee
-        ? fetchRows($conn, $visSql . " AND t.AnsattId = ?", 'ii', [$viewTask, $userId])
-        : fetchRows($conn, $visSql, 'i', [$viewTask]);
+        ? fetchRows($conn, $visSql . " AND t.AnsattId = ?", 'iii', [$viewTask, $minBedriftsId, $userId])
+        : fetchRows($conn, $visSql, 'ii', [$viewTask, $minBedriftsId]);
 
     if (!$vis && $error === '') {
         $error = "Task not found";
     }
 }
 
-$filterOppgaver = '';
-$filterAvvik    = '';
-$types          = '';
-$params         = [];
+/* Alle lister filtreres på bedrift. Ansatte ser i tillegg bare sine egne. */
+$filterOppgaver = 'WHERE t.BedriftsId = ?';
+$filterAvvik    = 'WHERE d.BedriftsId = ?';
+$types          = 'i';
+$params         = [$minBedriftsId];
 
 if ($isEmployee) {
-    $filterOppgaver = 'WHERE t.AnsattId = ?';
-    $filterAvvik    = 'WHERE d.AnsattId = ?';
-    $types          = 'i';
-    $params         = [$userId];
+    $filterOppgaver .= ' AND t.AnsattId = ?';
+    $filterAvvik    .= ' AND d.AnsattId = ?';
+    $types           = 'ii';
+    $params          = [$minBedriftsId, $userId];
 }
 
 $oppgaver = fetchRows(
@@ -257,7 +267,7 @@ $avvik = fetchRows(
 
 $ansatte = [];
 if ($showForm && $canDelegate) {
-    $ansatte = fetchRows($conn, "SELECT AnsattId, AnsattEpost FROM EMPLOYEE ORDER BY AnsattEpost");
+    $ansatte = fetchRows($conn, "SELECT AnsattId, AnsattEpost FROM EMPLOYEE WHERE BedriftsId = ? ORDER BY AnsattEpost", 'i', [$minBedriftsId]);
 }
 
 $meldinger = [

@@ -9,6 +9,16 @@ $tillatteStatuser = ['Available', 'Busy', 'Do not disturb', 'Away', 'Offline'];
 $epost = $_SESSION['email'] ?? '';
 $melding = '';
 
+$erManager = ($_SESSION['role'] ?? '' ) === 'manager';
+
+if($erManager) {
+    $sqlOppdater = "UPDATE COMPANYMANAGER SET Tilgjengelighet = ? WHERE Epost = ?";
+    $sqlHent = "SELECT Tilgjengelighet FROM COMPANYMANAGER WHERE Epost = ?";
+} else {
+    $sqlOppdater = "UPDATE EMPLOYEE SET Tilgjengelighet = ? WHERE AnsattEpost = ?";
+    $sqlHent = "SELECT Tilgjengelighet FROM EMPLOYEE WHERE AnsattEpost = ?";
+}
+
 if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['availability'])){
     $nyStatus = $_POST['availability'];
 
@@ -17,15 +27,15 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['availability'])){
     } elseif (!in_array($nyStatus, $tillatteStatuser, true)){
         $melding = 'Invalid availability';
     } else {
-        $lagreStatus = $conn->prepare("UPDATE EMPLOYEE SET Tilgjengelighet = ? WHERE AnsattEpost = ?");
+        $lagreStatus = $conn->prepare($sqlOppdater);
         $lagreStatus->bind_param("ss", $nyStatus, $epost);
         $lagreStatus->execute();
-        $melding = 'Settings saved';
+        $melding = $lagreStatus->affected_rows > 0 ? 'Availibilty updated' : 'Nothing updated';
     }
 }
 
 $gjeldendeStatus = 'Available';
-$hentStatus = $conn->prepare("SELECT Tilgjengelighet FROM EMPLOYEE WHERE AnsattEpost = ?");
+$hentStatus = $conn->prepare($sqlHent);
 $hentStatus->bind_param("s", $epost);
 $hentStatus->execute();
 $rad = $hentStatus->get_result()->fetch_assoc();

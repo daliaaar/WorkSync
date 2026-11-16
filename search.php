@@ -9,29 +9,31 @@ $employees = $managers = $offices = $equipment = [];
 if ($q !== '') {
     $like = '%' . $q . '%';
 
+    /* Alle søk er begrenset til brukerens egen bedrift */
     $employees = fetchRows($conn,
         "SELECT AnsattId, AnsattEpost, Stilling, Avdeling, KontorId FROM EMPLOYEE
-         WHERE AnsattEpost LIKE ? OR Stilling LIKE ? OR Avdeling LIKE ?",
-        'sss', [$like, $like, $like]);
+         WHERE BedriftsId = ? AND (AnsattEpost LIKE ? OR Stilling LIKE ? OR Avdeling LIKE ?)",
+        'isss', [$minBedriftsId, $like, $like, $like]);
 
-    $managerSql = "SELECT Navn, Epost, Bedriftsnavn FROM COMPANYMANAGER";
+    $managerSql = "SELECT Navn, Epost, Bedriftsnavn FROM COMPANYMANAGER WHERE BedriftsId = ?";
     if (in_array(strtolower($q), ['manager', 'managers'], true)) {
-        $managers = fetchRows($conn, $managerSql);
+        $managers = fetchRows($conn, $managerSql, 'i', [$minBedriftsId]);
     } else {
         $managers = fetchRows($conn,
-            $managerSql . " WHERE Navn LIKE ? OR Epost LIKE ? OR Bedriftsnavn LIKE ?",
-            'sss', [$like, $like, $like]);
+            $managerSql . " AND (Navn LIKE ? OR Epost LIKE ? OR Bedriftsnavn LIKE ?)",
+            'isss', [$minBedriftsId, $like, $like, $like]);
     }
 
     $offices = fetchRows($conn,
-        "SELECT KontorId FROM OFFICE WHERE KontorId LIKE ?",
-        's', [$like]);
+        "SELECT KontorId FROM OFFICE WHERE BedriftsId = ? AND KontorId LIKE ?",
+        'is', [$minBedriftsId, $like]);
 
     $equipment = fetchRows($conn,
         "SELECT e.UtstyrId, e.Navn, e.Type, e.Status, a.AnsattEpost, a.KontorId
          FROM EQUIPMENT e LEFT JOIN EMPLOYEE a ON e.AnsattId = a.AnsattId
-         WHERE e.Navn LIKE ? OR e.Type LIKE ? OR a.AnsattEpost LIKE ? OR a.KontorId LIKE ?",
-        'ssss', [$like, $like, $like, $like]);
+         WHERE e.BedriftsId = ?
+           AND (e.Navn LIKE ? OR e.Type LIKE ? OR a.AnsattEpost LIKE ? OR a.KontorId LIKE ?)",
+        'issss', [$minBedriftsId, $like, $like, $like, $like, $like]);
 }
 ?>
 

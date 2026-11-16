@@ -3,21 +3,36 @@
 $pageTitle  = "Dashboard";
 $activePage = "dashboard";
 require 'header.php';
+date_default_timezone_set('Europe/Oslo');
+
+$naaDato = date('Y-m-d');
+$naaTid = date('H:i:s');
 
 
-$antallAnsatte  = countRows($conn, "SELECT COUNT(*) FROM EMPLOYEE");
-$antallKontorer = countRows($conn, "SELECT COUNT(*) FROM OFFICE");
-$antallMoterom  = countRows($conn, "SELECT COUNT(*) FROM MEETINGROOM");
-$ledigeMoterom  = countRows($conn, "SELECT COUNT(*) FROM MEETINGROOM WHERE Tilgjengelighet = 'Available'");
+/* $minBedriftsId settes i header.php */
+
+$antallAnsatte  = countRows($conn, "SELECT COUNT(*) FROM EMPLOYEE WHERE BedriftsId = ?", 'i', [$minBedriftsId]);
+$antallKontorer = countRows($conn, "SELECT COUNT(*) FROM OFFICE WHERE BedriftsId = ?", 'i', [$minBedriftsId]);
+$antallMoterom  = countRows($conn, "SELECT COUNT(*) FROM MEETINGROOM WHERE BedriftsId = ?", 'i', [$minBedriftsId]);
+$ledigeMoterom  = countRows($conn,
+    "SELECT COUNT(*)
+       FROM MEETINGROOM m
+      WHERE m.BedriftsId = ?
+        AND NOT EXISTS (SELECT 1 FROM BOOKING b
+                         WHERE b.MoteromId = m.MoteromId
+                           AND b.Dato = ?
+                           AND b.Starttid <= ?
+                           AND b.Sluttid > ?)",
+    'isss', [$minBedriftsId, $naaDato, $naaTid, $naaTid]);
 
 if ($role === 'employee') {
     $apneOppgaver = countRows($conn, "SELECT COUNT(*) FROM TASKS WHERE AnsattId = ? AND Status <> 'Done'", 'i', [$userId]);
     $forfalt      = countRows($conn, "SELECT COUNT(*) FROM TASKS WHERE AnsattId = ? AND Status <> 'Done' AND Frist < CURDATE()", 'i', [$userId]);
     $antallAvvik  = countRows($conn, "SELECT COUNT(*) FROM DEVIATION WHERE AnsattId = ?", 'i', [$userId]);
 } else {
-    $apneOppgaver = countRows($conn, "SELECT COUNT(*) FROM TASKS WHERE Status <> 'Done'");
-    $forfalt      = countRows($conn, "SELECT COUNT(*) FROM TASKS WHERE Status <> 'Done' AND Frist < CURDATE()");
-    $antallAvvik  = countRows($conn, "SELECT COUNT(*) FROM DEVIATION");
+    $apneOppgaver = countRows($conn, "SELECT COUNT(*) FROM TASKS WHERE BedriftsId = ? AND Status <> 'Done'", 'i', [$minBedriftsId]);
+    $forfalt      = countRows($conn, "SELECT COUNT(*) FROM TASKS WHERE BedriftsId = ? AND Status <> 'Done' AND Frist < CURDATE()", 'i', [$minBedriftsId]);
+    $antallAvvik  = countRows($conn, "SELECT COUNT(*) FROM DEVIATION WHERE BedriftsId = ?", 'i', [$minBedriftsId]);
 }
 
 /* Belegg på møterom i prosent */
@@ -46,8 +61,11 @@ if ($role === 'employee') {
         "SELECT t.OppgaveId, t.Beskrivelse, t.Frist, e.AnsattEpost
            FROM TASKS t
            LEFT JOIN EMPLOYEE e ON e.AnsattId = t.AnsattId
+          WHERE t.BedriftsId = ?
           ORDER BY t.Frist ASC
-          LIMIT 6"
+          LIMIT 6",
+        'i',
+        [$minBedriftsId]
     );
 }
 
@@ -56,16 +74,32 @@ $avvik = fetchRows(
     "SELECT d.OppgaveId, d.Beskrivelse, d.Frist, e.AnsattEpost
        FROM DEVIATION d
        LEFT JOIN EMPLOYEE e ON e.AnsattId = d.AnsattId
+      WHERE d.BedriftsId = ?
       ORDER BY d.OppgaveId DESC
-      LIMIT 5"
+      LIMIT 5",
+    'i',
+    [$minBedriftsId]
 );
 
 $ansatte = fetchRows(
     $conn,
     "SELECT AnsattId, AnsattEpost, Tilgjengelighet
        FROM EMPLOYEE
+      WHERE BedriftsId = ?
       ORDER BY AnsattId DESC
-      LIMIT 6"
+      LIMIT 6",
+    'i',
+    [$minBedriftsId]
+);
+
+$managers = fetchRows(
+    $conn,
+    "SELECT BedriftsId, Epost, Tilgjengelighet
+       FROM COMPANYMANAGER
+      WHERE BedriftsId = ?
+      ORDER BY Epost ASC",
+    'i',
+    [$minBedriftsId]
 );
 ?>
 
@@ -218,7 +252,24 @@ $ansatte = fetchRows(
                     <p class="empty">No employees registered.</p>
                 <?php endif; ?>
             </div>
-
+          
+            <?php if($managers): ?>
+            <div class="panel">
+                <h3>Managers</h3>
+                <table>
+                    <?php foreach ($managers as $m): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($m['Epost'] ?? '') ?></td>
+                            <td style="text-align:right;">
+                                <span class="badge <?= statusClass($m['Tilgjengelighet']) ?>">
+                                    <?= htmlspecialchars($m['Tilgjengelighet'] ?: 'Unknown') ?>
+                                </span>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </table>
+            </div>
+            <?php endif; ?>
             <div class="panel quick-links">
                 <h3>Shortcuts</h3>
                 <?php if ($role !== 'employee'): ?>

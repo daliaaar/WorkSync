@@ -18,8 +18,10 @@ $avdeling = '';
 $etasje = '';
 $bygning = '';
 
+/* Bare ansatte i egen bedrift kan tildeles kontor */
 $employeesWithoutOffice = [];
-$result = $conn->prepare("SELECT AnsattId, AnsattEpost FROM EMPLOYEE WHERE KontorId IS NULL ORDER BY AnsattEpost");
+$result = $conn->prepare("SELECT AnsattId, AnsattEpost FROM EMPLOYEE WHERE KontorId IS NULL AND BedriftsId = ? ORDER BY AnsattEpost");
+$result->bind_param("i", $minBedriftsId);
 $result->execute();
 $resultEmployee = $result->get_result();
 while ($row = $resultEmployee->fetch_assoc()) {
@@ -27,16 +29,23 @@ while ($row = $resultEmployee->fetch_assoc()) {
 }
 
 $bygningForslag = fetchRows(
-    $conn, "SELECT DISTINCT Bygning FROM OFFICE WHERE Bygning IS NOT NULL AND Bygning  <> '' ORDER BY Bygning ASC");
+    $conn,
+    "SELECT DISTINCT Bygning FROM OFFICE WHERE BedriftsId = ? AND Bygning IS NOT NULL AND Bygning  <> '' ORDER BY Bygning ASC",
+    'i', [$minBedriftsId]);
 $avdelingsForslag = fetchRows(
-    $conn, "SELECT DISTINCT Avdeling FROM OFFICE WHERE Avdeling IS NOT NULL AND Avdeling <> '' ORDER BY Avdeling ASC"
-);
+    $conn,
+    "SELECT DISTINCT Avdeling FROM OFFICE WHERE BedriftsId = ? AND Avdeling IS NOT NULL AND Avdeling <> '' ORDER BY Avdeling ASC",
+    'i', [$minBedriftsId]);
 
 if($action === 'new' && $_SERVER['REQUEST_METHOD'] === 'POST'){
 
     $avdeling = trim($_POST['avdeling'] ?? '');
     $etasje = trim($_POST['etasje'] ?? '');
     $bygning = trim($_POST['bygning'] ?? '');
+
+    if ($minBedriftsId === 0) {
+        $errors[] = "No company found for your account";
+    }
 
     // setter 0 som betyr at manager ikke har valgt noen ansatte. 
     $chosenEmployeeId = (int) ($_POST['employee'] ?? 0);
@@ -61,16 +70,16 @@ if($assignEmployee){
     $bygnigDb = $bygning === '' ? null : $bygning;
         $conn->begin_transaction();
         try {
-            $createOfficestmt = $conn->prepare("INSERT INTO OFFICE (Avdeling, Etasje, Bygning) VALUES (?, ?, ?)");
-            $createOfficestmt->bind_param("sss", $avdelingDb, $etasjeDb, $bygnigDb);
+            $createOfficestmt = $conn->prepare("INSERT INTO OFFICE (Avdeling, Etasje, Bygning, BedriftsId) VALUES (?, ?, ?, ?)");
+            $createOfficestmt->bind_param("sssi", $avdelingDb, $etasjeDb, $bygnigDb, $minBedriftsId);
             $createOfficestmt->execute();
             $officeId = $conn->insert_id;
 
             $officeSaved = true;
 
             if($assignEmployee){
-            $assignEmployeeStmt = $conn->prepare("UPDATE EMPLOYEE SET KontorId = ? WHERE AnsattId = ? AND KontorId IS NULL");
-            $assignEmployeeStmt->bind_param("ii", $officeId, $chosenEmployeeId);
+            $assignEmployeeStmt = $conn->prepare("UPDATE EMPLOYEE SET KontorId = ? WHERE AnsattId = ? AND KontorId IS NULL AND BedriftsId = ?");
+            $assignEmployeeStmt->bind_param("iii", $officeId, $chosenEmployeeId, $minBedriftsId);
             $assignEmployeeStmt->execute();
 
             if ($assignEmployeeStmt->affected_rows !== 1) {
@@ -164,5 +173,4 @@ if($assignEmployee){
     </div>
 </div>
 <?php require __DIR__ . '/footer.php'; ?>
-
 

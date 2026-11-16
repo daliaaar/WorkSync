@@ -16,6 +16,8 @@ if (empty($_SESSION['csrf'])) {
 }
 
 $error = "";
+$firstname = "";
+$lastname = "";
 $email = "";
 $phone = "";
 $position = "";
@@ -26,6 +28,8 @@ $saved = isset($_GET['saved']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
+    $firstname       = trim($_POST['firstname'] ?? '');
+    $lastname        = trim($_POST['lastname'] ?? '');
     $email           = trim($_POST['email'] ?? '');
     $phone           = trim($_POST['phone'] ?? '');
     $position        = trim($_POST['position'] ?? '');
@@ -35,8 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
         $error = "Invalid form submission. Please try again.";
-    } elseif ($email === '' || $password === '') {
-        $error = "Email and password are required";
+    } elseif ($minBedriftsId === 0) {
+        $error = "No company found for your account";
+    } elseif ($firstname === '' || $lastname === '' || $email === '' || $password === '') {
+        $error = "First name, last name, email and password are required";
+    } elseif (strlen($firstname) > 100 || strlen($lastname) > 100) {
+    $error = "First name and last name must be at most 100 characters";
     } elseif (strlen($email) > 255 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Invalid email format";
     } elseif ($phone !== '' && !preg_match('/^[0-9+() -]{5,20}$/', $phone)) {
@@ -67,14 +75,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($finnes) {
                 $error = "Email already exists";
             } else {
-                $hash       = password_hash($password, PASSWORD_DEFAULT);
-                $phoneDb    = $phone !== '' ? $phone : null;
+                $hash         = password_hash($password, PASSWORD_DEFAULT);
+                $phoneDb      = $phone !== '' ? $phone : null;
+                $positionDb   = $position !== '' ? $position : null;
+                $departmentDb = $department !== '' ? $department : null;
 
+                /* BedriftsId kommer alltid fra innloggingen, aldri fra skjemaet */
                 $stmt = $conn->prepare(
-                    "INSERT INTO EMPLOYEE (AnsattEpost, AnsattPassord, AnsattTelefonnr)
-                     VALUES (?, ?, ?)"
+                    "INSERT INTO EMPLOYEE (Fornavn, Etternavn, AnsattEpost, AnsattPassord, AnsattTelefonnr, Stilling, Avdeling, BedriftsId)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
                 );
-                $stmt->bind_param("sss", $email, $hash, $phoneDb);
+                $stmt->bind_param("sssssssi", $firstname, $lastname, $email, $hash, $phoneDb, $positionDb, $departmentDb, $minBedriftsId);
                 $stmt->execute();
                 $stmt->close();
 
@@ -110,6 +121,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="POST" action="add_employees.php" class="report-form">
             <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+            <label for="firstName">First name</label>
+            <input type="text" id="firstName" name="firstName" maxlength="100" required
+                placeholder="First name"
+                value="<?= htmlspecialchars($firstname) ?>">
+
+            <label for="lastName">Last name</label>
+            <input type="text" id="lastName" name="lastName" maxlength="100" required
+                placeholder="Last name"
+                value="<?= htmlspecialchars($lastname) ?>">
 
             <label for="email">Email</label>
             <input type="email" id="email" name="email" maxlength="255" required

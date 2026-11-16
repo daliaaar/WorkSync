@@ -22,13 +22,16 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_booking'])){
     $erManager = ($role === 'manager') ? 1 : 0;
     $naa= date('Y-m-d H:i:s');
 
+    /* Bare bookinger på møterom i egen bedrift */
     $stmt = $conn->prepare(
-        "DELETE FROM BOOKING
-        WHERE BookingId = ?
-        AND (? = 1 OR AnsattEpost = ?)
-        AND TIMESTAMP(Dato, Sluttid) > ?"
+        "DELETE b FROM BOOKING b
+           JOIN MEETINGROOM m ON m.MoteromId = b.MoteromId
+          WHERE b.BookingId = ?
+            AND m.BedriftsId = ?
+            AND (? = 1 OR b.AnsattEpost = ?)
+            AND TIMESTAMP(b.Dato, b.Sluttid) > ?"
     );
-    $stmt->bind_param("iiss", $bookingId, $erManager, $minEpost, $naa);
+    $stmt->bind_param("iiiss", $bookingId, $minBedriftsId, $erManager, $minEpost, $naa);
     $stmt->execute();
     $msg = $stmt->affected_rows > 0 ? 'Booking cancelled' : 'Could not cancel booking';
     $stmt->close();
@@ -49,20 +52,24 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])){
     $conn->begin_transaction();
     try{
         if ($type === 'office'){
-            $u = $conn->prepare("UPDATE EMPLOYEE SET KontorId = NULL WHERE KontorId = ?");
-            $u->bind_param("i", $id);
+            $u = $conn->prepare("UPDATE EMPLOYEE SET KontorId = NULL WHERE KontorId = ? AND BedriftsId = ?");
+            $u->bind_param("ii", $id, $minBedriftsId);
             $u->execute();
 
-            $d = $conn->prepare("DELETE FROM OFFICE WHERE KontorId = ?");
-            $d->bind_param("i", $id);
+            $d = $conn->prepare("DELETE FROM OFFICE WHERE KontorId = ? AND BedriftsId = ?");
+            $d->bind_param("ii", $id, $minBedriftsId);
             $d->execute();
         } elseif ($type === 'room'){
-            $b = $conn->prepare("DELETE FROM BOOKING WHERE MoteromId = ?");
-            $b->bind_param("i", $id);
+            $b = $conn->prepare(
+                "DELETE b FROM BOOKING b
+                   JOIN MEETINGROOM m ON m.MoteromId = b.MoteromId
+                  WHERE b.MoteromId = ? AND m.BedriftsId = ?"
+            );
+            $b->bind_param("ii", $id, $minBedriftsId);
             $b->execute();
 
-            $d = $conn->prepare("DELETE FROM MEETINGROOM WHERE MoteromId = ?");
-            $d->bind_param("i", $id);
+            $d = $conn->prepare("DELETE FROM MEETINGROOM WHERE MoteromId = ? AND BedriftsId = ?");
+            $d->bind_param("ii", $id, $minBedriftsId);
             $d->execute();
         }
         $conn->commit();
@@ -78,8 +85,11 @@ $kontorer = fetchRows(
     "SELECT o.KontorId, o.Avdeling, o.Etasje, o.Bygning, e.AnsattEpost
        FROM OFFICE o
        LEFT JOIN EMPLOYEE e ON e.KontorId = o.KontorId
+      WHERE o.BedriftsId = ?
       ORDER BY o.Bygning IS NULL, o.Bygning ASC, o.Etasje IS NULL, LENGTH(o.Etasje) ASC, o.Etasje ASC,
-      o.KontorId ASC"
+      o.KontorId ASC",
+    'i',
+    [$minBedriftsId]
 );
 
 $grupper = [];
@@ -92,7 +102,10 @@ $moterom = fetchRows(
     $conn,
     "SELECT MoteromId, Navn, Kapasitet, Bygning, Etasje
        FROM MEETINGROOM
-      ORDER BY Bygning IS NULL, Bygning ASC, Etasje IS NULL, LENGTH(Etasje) ASC, MoteromId ASC"
+      WHERE BedriftsId = ?
+      ORDER BY Bygning IS NULL, Bygning ASC, Etasje IS NULL, LENGTH(Etasje) ASC, MoteromId ASC",
+    'i',
+    [$minBedriftsId]
 );
 
 $idag = date('Y-m-d');
@@ -105,12 +118,13 @@ if(!$gyldigDato || $gyldigDato ->format('Y-m-d') !== $visDato){
 $erIdag = ($visDato === $idag);
 
 $stmt = $conn->prepare(
-    "SELECT BookingId, MoteromId, Starttid, Sluttid, AnsattEpost
-    FROM BOOKING
-    WHERE Dato = ?
-    ORDER BY Starttid ASC"
+    "SELECT b.BookingId, b.MoteromId, b.Starttid, b.Sluttid, b.AnsattEpost
+       FROM BOOKING b
+       JOIN MEETINGROOM m ON m.MoteromId = b.MoteromId
+      WHERE b.Dato = ? AND m.BedriftsId = ?
+      ORDER BY b.Starttid ASC"
 );
-$stmt->bind_param("s", $visDato);
+$stmt->bind_param("si", $visDato, $minBedriftsId);
 $stmt->execute();
 $dagensBookinger = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();

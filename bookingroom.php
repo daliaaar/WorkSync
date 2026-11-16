@@ -11,18 +11,21 @@ $moterom = [];
 $cancelOk = false;
 $epost = $_SESSION['email'] ?? '';
 
-$res = $conn->query("SELECT MoteromId, Navn FROM MEETINGROOM ORDER BY MoteromId");
-while($row = $res->fetch_assoc()) {
-    $moterom[] = $row;
-}
+/* Bare møterom i egen bedrift */
+$moterom = fetchRows($conn, "SELECT MoteromId, Navn FROM MEETINGROOM WHERE BedriftsId = ? ORDER BY MoteromId", 'i', [$minBedriftsId]);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel'])){
     $bookingId = (int) ($_POST['booking_id'] ?? 0);
 
     if($epost === ''){
         $error[] = "You must be logged in to cancel a booking";
     } else {
-        $cancel  = $conn->prepare("DELETE FROM BOOKING WHERE BookingId = ? AND AnsattEpost = ?");
-        $cancel->bind_param("is", $bookingId, $epost);
+        $cancel  = $conn->prepare(
+            "DELETE b FROM BOOKING b
+               JOIN MEETINGROOM m ON m.MoteromId = b.MoteromId
+              WHERE b.BookingId = ? AND b.AnsattEpost = ? AND m.BedriftsId = ?"
+        );
+        $cancel->bind_param("isi", $bookingId, $epost, $minBedriftsId);
         $cancel->execute();
 
         if($cancel->affected_rows > 0){
@@ -42,7 +45,7 @@ foreach ($moterom as $m) {
     }
 }
 if (!$valgtRom){
-    header('Location: offices.php');
+    header('Location: office.php');
     exit;
 }
 
@@ -80,8 +83,8 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['cancel'])) {
     if(!$error){
         $conn->begin_transaction();
         try{
-            $romlaas = $conn->prepare("SELECT MoteromId FROM MEETINGROOM WHERE MoteromId = ? FOR UPDATE");
-            $romlaas->bind_param("i", $choosenRoom);
+            $romlaas = $conn->prepare("SELECT MoteromId FROM MEETINGROOM WHERE MoteromId = ? AND BedriftsId = ? FOR UPDATE");
+            $romlaas->bind_param("ii", $choosenRoom, $minBedriftsId);
             $romlaas->execute();
             $romlaas->get_result();
 

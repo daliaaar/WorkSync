@@ -13,13 +13,14 @@ $tillateStatuser = ['Available', 'Busy', 'Do not disturb', 'Away', 'Offline'];
 $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
 $msg = '';
 
+/* Bare ansatte i egen bedrift */
 $s = $conn->prepare(
-    "SELECT AnsattId, AnsattEpost, AnsattTelefonnr, Stilling, 
+    "SELECT AnsattId, Fornavn, Etternavn, AnsattEpost, AnsattTelefonnr, Stilling, 
     Avdeling, Tilgjengelighet, KontorId
     FROM EMPLOYEE
-    WHERE AnsattId = ?"
+    WHERE AnsattId = ? AND BedriftsId = ?"
 );
-$s->bind_param("i", $id);
+$s->bind_param("ii", $id, $minBedriftsId);
 $s->execute();
 $emp = $s->get_result()->fetch_assoc();
 
@@ -34,6 +35,8 @@ if (!empty($emp['Tilgjengelighet']) && !in_array($emp['Tilgjengelighet'], $gyldi
 }
 
 if($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $fornavn  = trim($_POST['fornavn'] ?? '');
+    $etternavn = trim($_POST['etternavn'] ?? '');
     $epost      = trim($_POST['epost'] ?? '');
     $tlf        = trim($_POST['telefon'] ?? '');
     $stilling   = trim($_POST['stilling'] ?? '');
@@ -49,29 +52,37 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         $msg = 'Invalid email';
     } elseif ($tilgj !== '' && !in_array($tilgj, $gyldigeStatuser, true)) {
         $msg = 'Invalid availibility';
+    } elseif ($kontor !== null && !fetchRows($conn, "SELECT 1 FROM OFFICE WHERE KontorId = ? AND BedriftsId = ?", 'ii', [$kontor, $minBedriftsId])) {
+        $msg = 'Invalid office';
     } elseif ($nyttPassord !== '' && strlen($nyttPassord) < 16) {
         $msg = 'Password must be at least 16 characters';
     } elseif ($nyttPassord !== $bekreftPassord) {
         $msg = 'Passwords do not match';
+    } elseif ($fornavn === '' || $etternavn === '') {
+    $msg = 'First name and last name are required';
+    } elseif (strlen($fornavn) > 100 || strlen($etternavn) > 100) {
+    $msg = 'First name and last name must be at most 100 characters';
     } else {
         $conn->begin_transaction();
         try {
             $u =  $conn->prepare("UPDATE EMPLOYEE 
-                    SET AnsattEpost = ?, 
+                    SET Fornavn = ?,
+                        Etternavn = ?, 
+                        AnsattEpost = ?, 
                         AnsattTelefonnr = ?, 
                         Stilling = ?, 
                         Avdeling = ?, 
                         Tilgjengelighet = ?, 
                         KontorId = ?
-                    WHERE AnsattId = ?"
+                    WHERE AnsattId = ? AND BedriftsId = ?"
             );
-            $u->bind_param("sssssii", $epost, $tlf, $stilling, $avdeling, $tilgj, $kontor, $id);
+            $u->bind_param("sssssssiii", $fornavn, $etternavn, $epost, $tlf, $stilling, $avdeling, $tilgj, $kontor, $id, $minBedriftsId);
             $u->execute();
             
             if($nyttPassord !== '') {
                 $hash = password_hash($nyttPassord, PASSWORD_DEFAULT);
-                $p = $conn->prepare("UPDATE EMPLOYEE SET AnsattPassord = ? WHERE AnsattId = ?");
-                $p->bind_param("si", $hash, $id);
+                $p = $conn->prepare("UPDATE EMPLOYEE SET AnsattPassord = ? WHERE AnsattId = ? AND BedriftsId = ?");
+                $p->bind_param("sii", $hash, $id, $minBedriftsId);
                 $p->execute();
             }
 
@@ -95,6 +106,8 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if($_SERVER['REQUEST_METHOD'] === 'POST' && $msg !== '') {
+        $emp['Fornavn'] = $fornavn;
+        $emp['Etternavn'] = $etternavn;
         $emp['AnsattEpost']         = $epost;
         $emp['AnsattTelefonnr']     = $tlf;
         $emp['Stilling']            = $stilling;
@@ -104,9 +117,12 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+/* Bare kontorer i egen bedrift */
 $kontorer = fetchRows($conn, "SELECT o.KontorId, 
                                 e.AnsattId AS EierId, e.AnsattEpost AS EierEpost FROM OFFICE o
-                                LEFT JOIN EMPLOYEE e ON e.KontorId = o.KontorId ORDER BY o.KontorId ASC");
+                                LEFT JOIN EMPLOYEE e ON e.KontorId = o.KontorId
+                                WHERE o.BedriftsId = ?
+                                ORDER BY o.KontorId ASC", 'i', [$minBedriftsId]);
 
 ?>
 <style>
@@ -139,6 +155,15 @@ $kontorer = fetchRows($conn, "SELECT o.KontorId,
     <div class="panel">
         <form method="post">
             <input type="hidden" name="id" value="<?= (int) $emp['AnsattId'] ?>">
+            <label>First name
+                <input type="text" name="fornavn" maxlength="100" required
+                    value="<?= htmlspecialchars($emp['Fornavn'] ?? '') ?>">
+            </label>
+
+            <label>Last name
+                <input type="text" name="etternavn" maxlength="100" required
+                    value="<?= htmlspecialchars($emp['Etternavn'] ?? '') ?>">
+            </label>
                 <label>Email
                     <input type="email" name="epost" required
                             value="<?= htmlspecialchars($emp['AnsattEpost'] ?? '') ?>">
@@ -196,6 +221,3 @@ $kontorer = fetchRows($conn, "SELECT o.KontorId,
     </div>
 </div>
 <?php require 'footer.php'; ?>
-
-
-
