@@ -18,6 +18,14 @@ if($erManager) {
     $sqlOppdater = "UPDATE EMPLOYEE SET Tilgjengelighet = ? WHERE AnsattEpost = ?";
     $sqlHent = "SELECT Tilgjengelighet FROM EMPLOYEE WHERE AnsattEpost = ?";
 }
+/*ENDRE PASSORD*/
+if($erManager) {
+    $sqlPassordHent = "SELECT Passord FROM COMPANYMANAGER WHERE Epost = ?";
+    $sqlPassordOppdater = "UPDATE COMPANYMANAGER SET Passord = ? WHERE Epost = ?";
+} else {
+    $sqlPassordHent = "SELECT AnsattPassord AS Passord FROM EMPLOYEE WHERE AnsattEpost = ?";
+    $sqlPassordOppdater = "UPDATE EMPLOYEE SET AnsattPassord = ? WHERE AnsattEpost = ?";
+}
 
 if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['availability'])){
     $nyStatus = $_POST['availability'];
@@ -31,6 +39,57 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['availability'])){
         $lagreStatus->bind_param("ss", $nyStatus, $epost);
         $lagreStatus->execute();
         $melding = $lagreStatus->affected_rows > 0 ? 'Availibilty updated' : 'Nothing updated';
+    }
+}
+/* ENDRE PASSORD */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
+
+    $currentPass = $_POST['current_pass'] ?? '';
+    $newPass = $_POST['new_pass'] ?? '';
+    $confirmPass = $_POST['confirm_pass'] ?? '';
+
+    if ($epost === '') {
+        $melding = 'You must be logged in';
+
+    } elseif ($currentPass === '' || $newPass === '' || $confirmPass === '') {
+        $melding = 'Please fill in all password fields';
+
+    } elseif ($newPass !== $confirmPass) {
+        $melding = 'New passwords do not match';
+
+    } elseif (strlen($newPass) < 16) {
+        $melding = 'Password must be at least 16 characters';
+
+    } else {
+
+        // Hent eksisterende passord
+        $hentPassord = $conn->prepare($sqlPassordHent);
+        $hentPassord->bind_param("s", $epost);
+        $hentPassord->execute();
+
+        $bruker = $hentPassord->get_result()->fetch_assoc();
+
+        if (!$bruker) {
+            $melding = 'User not found';
+
+        } elseif (!password_verify($currentPass, $bruker['Passord'])) {
+            $melding = 'Current password is incorrect';
+
+        } else {
+
+            // Hash det nye passordet
+            $hashPassord = password_hash($newPass, PASSWORD_DEFAULT);
+
+            // Oppdater passordet i databasen
+            $oppdaterPassord = $conn->prepare($sqlPassordOppdater);
+            $oppdaterPassord->bind_param("ss", $hashPassord, $epost);
+
+            if ($oppdaterPassord->execute()) {
+                $melding = 'Password successfully updated';
+            } else {
+                $melding = 'Could not update password';
+            }
+        }
     }
 }
 
@@ -71,8 +130,11 @@ if($rad && $rad['Tilgjengelighet']){
                     <?php endforeach; ?>
                 </select>
             </div>
+       
+        <button type="submit" class="btn-primary">
+            Save Availability
+        </button>
         </div>
-
         <!-- VARSLER -->
         <div class="settings-card">
             <h3>Notifications</h3>
@@ -94,18 +156,28 @@ if($rad && $rad['Tilgjengelighet']){
 
         <!-- SIKKERHET -->
         <div class="settings-card">
-            <h3>Change Password</h3>
-            <div class="form-group">
-                <label for="current_pass">Current Password</label>
-                <input type="password" id="current_pass" name="current_pass">
-            </div>
-            <div class="form-group">
-                <label for="new_pass">New Password</label>
-                <input type="password" id="new_pass" name="new_pass">
-            </div>
+        <h3>Change Password</h3>
+
+        <div class="form-group">
+            <label for="current_pass">Current Password</label>
+            <input type="password" id="current_pass" name="current_pass">
         </div>
 
-        <button type="submit" class="btn-primary">Save Changes</button>
+        <div class="form-group">
+            <label for="new_pass">New Password</label>
+            <input type="password" id="new_pass" name="new_pass">
+        </div>
+
+        <div class="form-group">
+            <label for="confirm_pass">Confirm New Password</label>
+            <input type="password" id="confirm_pass" name="confirm_pass">
+        </div>
+
+        <button type="submit" name="change_password" value="1"
+                class="btn-primary">
+            Update Password
+        </button>
+        </div>
     </form>
 </div>
 
