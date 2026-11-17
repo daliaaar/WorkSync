@@ -41,16 +41,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Invalid form submission. Please try again.";
     } elseif ($minBedriftsId === 0) {
         $error = "No company found for your account";
-    } elseif ($firstname === '' || $lastname === '' || $email === '' || $password === '') {
-        $error = "First name, last name, email and password are required";
-    } elseif (strlen($firstname) > 100 || strlen($lastname) > 100) {
-    $error = "First name and last name must be at most 100 characters";
+    } elseif ($firstname === '') {
+        $error = "First name is required";
+    } elseif (strlen($firstname) > 100) {
+        $error = "First name must be at most 100 characters";
+    } elseif ($lastname === '') {
+        $error = "Last name is required";
+    } elseif (strlen($lastname) > 100) {
+        $error = "Last name must be at most 100 characters";
+    } elseif ($email === '') {
+        $error = "Email is required";
     } elseif (strlen($email) > 255 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Invalid email format";
     } elseif ($phone !== '' && !preg_match('/^[0-9+() -]{5,20}$/', $phone)) {
         $error = "Invalid phone number";
     } elseif (strlen($position) > 100 || strlen($department) > 100){
         $error = "Position and department must be at most 100 characters";
+    } elseif ($password === '') {
+        $error = "Password is required";
     } elseif (strlen($password) < $minPassordLengde) {
         $error = "Password must be at least $minPassordLengde characters";
     } elseif ($password !== $passwordConfirm) {
@@ -121,13 +129,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="POST" action="add_employees.php" class="report-form">
             <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
-            <label for="firstName">First name</label>
-            <input type="text" id="firstName" name="firstName" maxlength="100" required
+            <label for="firstname">First name</label>
+            <input type="text" id="firstname" name="firstname" maxlength="100" required
                 placeholder="First name"
                 value="<?= htmlspecialchars($firstname) ?>">
 
-            <label for="lastName">Last name</label>
-            <input type="text" id="lastName" name="lastName" maxlength="100" required
+            <label for="lastname">Last name</label>
+            <input type="text" id="lastname" name="lastname" maxlength="100" required
                 placeholder="Last name"
                 value="<?= htmlspecialchars($lastname) ?>">
 
