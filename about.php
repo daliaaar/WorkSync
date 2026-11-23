@@ -34,12 +34,16 @@
         .nav-links{
             list-style:none;
             display:flex;
+            flex-direction:row;
+            align-items:center;
             gap:30px;
             margin:0;
+            padding:0;
         }
 
         .nav-links a{
             text-decoration:none;
+            font-size:18px;
             color:black;
             transition:0.3s;
         }
@@ -108,7 +112,7 @@
             <li><a href="about.php">About</a></li>
             <li><a href="contact.php">Contact</a></li>
             <li><a href="log_in.php">Login</a></li>
-            <li><a href="register.php">Sign Up</a></li>
+            <li><a href="register.php">Sign up</a></li>
         </ul>
     </nav>
 
